@@ -23,15 +23,17 @@ using cpp_network_depth = R_DEPTH<1,2>;
 RCPP_MODULE(cpp_network_depth) {
     Rcpp::class_<R_DEPTH<1,2>>("cpp_network_depth")
       .constructor<Rcpp::Environment, int>()
-      .method("set_weight_function", &R_DEPTH<1,2>::set_weight_function)
+      .method("set_phi_matrix"     , &R_DEPTH<1,2>::set_phi_matrix     )
       .method("set_functional_data", &R_DEPTH<1,2>::set_functional_data)
       .method("set_locations"      , &R_DEPTH<1,2>::set_locations      )
       .method("set_depth_type"     , &R_DEPTH<1,2>::set_depth_type     )
+      .method("get_density_vector" , &R_DEPTH<1,2>::get_density_vector )
       .method("get_output_matrices", &R_DEPTH<1,2>::get_output_matrices)
       .method("get_ifd"            , &R_DEPTH<1,2>::get_ifd            )
       .method("get_storage"        , &R_DEPTH<1,2>::get_storage        )
       .method("init"               , &R_DEPTH<1,2>::init               )
-      .method("solve"              , &R_DEPTH<1,2>::solve              );
+      .method("solve"              , &R_DEPTH<1,2>::solve              )
+      .method("predict"            , &R_DEPTH<1,2>::predict            );
 }
 
 // Rcpp modules definition
@@ -39,15 +41,17 @@ using cpp_2d_depth = R_DEPTH<2,2>;
 RCPP_MODULE(cpp_2d_depth) {
     Rcpp::class_<R_DEPTH<2,2>>("cpp_2d_depth")
       .constructor<Rcpp::Environment, int>()
-      .method("set_weight_function", &R_DEPTH<2,2>::set_weight_function)
+      .method("set_phi_matrix"     , &R_DEPTH<2,2>::set_phi_matrix     )
       .method("set_functional_data", &R_DEPTH<2,2>::set_functional_data)
       .method("set_locations"      , &R_DEPTH<2,2>::set_locations      )
       .method("set_depth_type"     , &R_DEPTH<2,2>::set_depth_type     )
+      .method("get_density_vector" , &R_DEPTH<2,2>::get_density_vector )
       .method("get_output_matrices", &R_DEPTH<2,2>::get_output_matrices)
       .method("get_ifd"            , &R_DEPTH<2,2>::get_ifd            )
       .method("get_storage"        , &R_DEPTH<2,2>::get_storage        )
       .method("init"               , &R_DEPTH<2,2>::init               )
-      .method("solve"              , &R_DEPTH<2,2>::solve              );
+      .method("solve"              , &R_DEPTH<2,2>::solve              )
+      .method("predict"            , &R_DEPTH<2,2>::predict            );
 }
 
 // Rcpp modules definition
@@ -55,15 +59,17 @@ using cpp_surface_depth = R_DEPTH<2,3>;
 RCPP_MODULE(cpp_surface_depth) {
     Rcpp::class_<R_DEPTH<2,3>>("cpp_surface_depth")
       .constructor<Rcpp::Environment, int>()
-      .method("set_weight_function", &R_DEPTH<2,3>::set_weight_function)
+      .method("set_phi_matrix"     , &R_DEPTH<2,3>::set_phi_matrix     )
       .method("set_functional_data", &R_DEPTH<2,3>::set_functional_data)
       .method("set_locations"      , &R_DEPTH<2,3>::set_locations      )
       .method("set_depth_type"     , &R_DEPTH<2,3>::set_depth_type     )
+      .method("get_density_vector" , &R_DEPTH<2,3>::get_density_vector )
       .method("get_output_matrices", &R_DEPTH<2,3>::get_output_matrices)
       .method("get_ifd"            , &R_DEPTH<2,3>::get_ifd            )
       .method("get_storage"        , &R_DEPTH<2,3>::get_storage        )
       .method("init"               , &R_DEPTH<2,3>::init               )
-      .method("solve"              , &R_DEPTH<2,3>::solve              );
+      .method("solve"              , &R_DEPTH<2,3>::solve              )
+      .method("predict"            , &R_DEPTH<2,3>::predict            );
 }
 
 // Rcpp modules definition
@@ -71,13 +77,15 @@ using cpp_3d_depth = R_DEPTH<3,3>;
 RCPP_MODULE(cpp_3d_depth) {
     Rcpp::class_<R_DEPTH<3,3>>("cpp_3d_depth")
       .constructor<Rcpp::Environment, int>()
-      .method("set_weight_function", &R_DEPTH<3,3>::set_weight_function)
+      .method("set_phi_matrix"     , &R_DEPTH<3,3>::set_phi_matrix     )
       .method("set_functional_data", &R_DEPTH<3,3>::set_functional_data)
       .method("set_locations"      , &R_DEPTH<3,3>::set_locations      )
       .method("set_depth_type"     , &R_DEPTH<3,3>::set_depth_type     )
+      .method("get_density_vector" , &R_DEPTH<3,3>::get_density_vector )
       .method("get_output_matrices", &R_DEPTH<3,3>::get_output_matrices)
       .method("get_ifd"            , &R_DEPTH<3,3>::get_ifd            )
       .method("get_storage"        , &R_DEPTH<3,3>::get_storage        )
       .method("init"               , &R_DEPTH<3,3>::init               )
-      .method("solve"              , &R_DEPTH<3,3>::solve              );
+      .method("solve"              , &R_DEPTH<3,3>::solve              )
+      .method("predict"            , &R_DEPTH<3,3>::predict            );
 }

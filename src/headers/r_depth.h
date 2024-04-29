@@ -22,7 +22,7 @@
 // [[Rcpp::depends(RcppEigen)]]
 
 #include <fdaPDE/utils/symbols.h>
-#include <fdaPDE/models.h> # TO be modified
+#include <fdaPDE/models.h> // TO be modified
 using fdapde::models::DEPTH;
 
 #include "r_mesh.h"
@@ -30,11 +30,10 @@ using fdapde::core::Mesh;
 
 template <int M, int N> class R_DEPTH { # M and N need to be specified in instantiation before
 private:
-  using DomainType = Mesh<M, N>;
+using DomainType = Mesh<M, N>;
   
   DomainType domain_ {};           // triangulation
   DEPTH model_; // statistical model to wrap
-  BlockFrame<double, int> data_;
 public:
   R_DEPTH(Rcpp::Environment mesh) {
     // set domain
@@ -43,27 +42,41 @@ public:
     domain_ = ptr->domain();
     
     // set model instance
-    model_ = DEPTH("???"); // to be harmonized with the construCtor of the class that will compute the depths, called DEPTH
+    model_ = DEPTH(domain_); // to be harmonized with the construCtor of the class that will compute the depths, called DEPTH
   }
   
   // setters
   // Here I will have the setters for the data internal to the C++ class that will compute depth. First I need to construct it, and then to harmonize it
-  void set_functional_data(const DMatrix<double>& f_data) { data_.template insert<double>("FUNCTIONAL_DATA", f_data); } // NBB substitute the "FUNCTIONAL_DATA" with an appropriate flag in the Cpp part.
-  void set_weight_function(const DMatrix<double>& weight_function) { model.set_weight_function(weight_function); } // This is not ok for the function but just to clarify what is needed
-  void set_locations(const DMatrix<double>& locations) {data_.template insert<double>("LOCATIONS", locations);} // NBB substitute the "LOCATIONS" with an appropriate flag in the Cpp part.
+  void set_functional_data(const DMatrix<double>& f_data, const DMatrix<bool>& f_data_mask) 
+  {model_.set_train_functions(f_data);
+    model_.set_train_NA_matrix(f_data_mask);} // NBB substitute the "FUNCTIONAL_DATA" with an appropriate flag in the Cpp part.
+  void set_phi_matrix(const DMatrix<double>& phi_matrix) { model_.set_phi_matrix(phi_matrix); } // Evaluated phi matrix in R
+  void set_locations(const DMatrix<double>& locations) {model_.set_locations(locations);} // NBB check that the locations cannot be directly put inside mesh
   void set_depth_type(const DVector<int>& depth_type) {model_.set_depth_type(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
+  void set_pred_depth_type(const DVector<int>& depth_type) {model_.set_pred_depth_type(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
   
   // getters: output management
+  const DMatrix<double> & get_density_vector(){ return model_.get_density_vector(); }
   const DMatrix<double> & get_output_matrices(){ return model_.get_output_matrices(); }
   const DMatrix<double> & get_ifd(){ return model_.get_ifd(); }
   const DMatrix<double> & get_storage(){ return model_.get_storage(); }
   
   // utilities
   void init() {
-    model_.set_data(data_); // this utility will set data to the C++ class object.
+    // Setting data to the C++ class
     model_.init(); // init will ask to compute all the internals, such as the Voronoy representation
   }
   void solve() { model_.solve(); } // This part will solve the model, computing the reciprocal depths.
+  
+  DMatrix<double> predict(const DMatrix<double> & pred_data, DMatrix<bool> & pred_mask) {
+    model_.set_pred_functions(pred_data);
+    model_.set_pred_NA_matrix(pred_mask);
+  
+    model_.predict(); 
+    
+    DMatrix<double> output = model_.get_pred_output(); // Here will be both the ifd, the MEI if required, the others.
+    return output
+  } // This part computes the predicted IFD, MEI, ...
   
   // destructor
   ~R_DEPTH() = default;;

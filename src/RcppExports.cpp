@@ -12,6 +12,10 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 
+RcppExport SEXP _rcpp_module_boot_cpp_network_depth();
+RcppExport SEXP _rcpp_module_boot_cpp_2d_depth();
+RcppExport SEXP _rcpp_module_boot_cpp_surface_depth();
+RcppExport SEXP _rcpp_module_boot_cpp_3d_depth();
 RcppExport SEXP _rcpp_module_boot_cpp_lagrange_basis_2d_fe1();
 RcppExport SEXP _rcpp_module_boot_cpp_lagrange_basis_2d_fe2();
 RcppExport SEXP _rcpp_module_boot_cpp_gcv();
@@ -24,12 +28,12 @@ RcppExport SEXP _rcpp_module_boot_cpp_pde_2d_fe1();
 RcppExport SEXP _rcpp_module_boot_cpp_pde_2d_fe2();
 RcppExport SEXP _rcpp_module_boot_cpp_qsrpde_s();
 RcppExport SEXP _rcpp_module_boot_cpp_srpde();
-RcppExport SEXP _rcpp_module_boot_cpp_network_depth();
-RcppExport SEXP _rcpp_module_boot_cpp_2d_depth();
-RcppExport SEXP _rcpp_module_boot_cpp_surface_depth();
-RcppExport SEXP _rcpp_module_boot_cpp_3d_depth();
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_rcpp_module_boot_cpp_network_depth", (DL_FUNC) &_rcpp_module_boot_cpp_network_depth, 0},
+    {"_rcpp_module_boot_cpp_2d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_2d_depth, 0},
+    {"_rcpp_module_boot_cpp_surface_depth", (DL_FUNC) &_rcpp_module_boot_cpp_surface_depth, 0},
+    {"_rcpp_module_boot_cpp_3d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_3d_depth, 0},
     {"_rcpp_module_boot_cpp_lagrange_basis_2d_fe1", (DL_FUNC) &_rcpp_module_boot_cpp_lagrange_basis_2d_fe1, 0},
     {"_rcpp_module_boot_cpp_lagrange_basis_2d_fe2", (DL_FUNC) &_rcpp_module_boot_cpp_lagrange_basis_2d_fe2, 0},
     {"_rcpp_module_boot_cpp_gcv", (DL_FUNC) &_rcpp_module_boot_cpp_gcv, 0},
@@ -42,11 +46,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rcpp_module_boot_cpp_pde_2d_fe2", (DL_FUNC) &_rcpp_module_boot_cpp_pde_2d_fe2, 0},
     {"_rcpp_module_boot_cpp_qsrpde_s", (DL_FUNC) &_rcpp_module_boot_cpp_qsrpde_s, 0},
     {"_rcpp_module_boot_cpp_srpde", (DL_FUNC) &_rcpp_module_boot_cpp_srpde, 0},
-    {"_rcpp_module_boot_cpp_depth", (DL_FUNC) &_rcpp_module_boot_cpp_depth, 0},
-    {"_rcpp_module_boot_cpp_network_depth", (DL_FUNC) &_rcpp_module_boot_cpp_network_depth, 0},
-    {"_rcpp_module_boot_cpp_2d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_2d_depth, 0},
-    {"_rcpp_module_boot_cpp_surface_depth", (DL_FUNC) &_rcpp_module_boot_cpp_surface_depth, 0},
-    {"_rcpp_module_boot_cpp_3d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_3d_depth, 0},
     {NULL, NULL, 0}
 };
 
