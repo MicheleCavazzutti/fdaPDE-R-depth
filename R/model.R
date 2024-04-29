@@ -1,210 +1,176 @@
-simple_laplacian_penalty <- function(D, fe_order = 1L) {
-    ## generate simple laplacian regularization
-    L <- -laplace(Function(FunctionSpace(D, as.integer(fe_order))))
-    u <- function(points) { ## homogeneous forcing term
-        return(matrix(0, nrow = nrow(points), ncol = 1))
-    }
-    return(PDE(L, u))
-}
+## This file is part of fdaPDE, an R library for physics-informed
+## spatial and functional data analysis.
 
-## seed and n_mc_samples meaningfull only for stochastic edf_computation
-gcv <- function(optimizer, lambda, edf_computation = c("stochastic", "exact"),
-                seed = NULL, mc_samples = NULL, max_iter = NULL, step = NULL, tolerance = NULL) {
-    gcv_params <- list(
-        calibration_type = "gcv",
-        ## properties related to the computation of the expected degrees of freedom
-        edf_computation = match.arg(edf_computation),
-        seed = seed,
-        mc_samples = mc_samples,
-        ## properties related to the optimization algorithm
-        optimizer = optimizer,
-        lambda = lambda,
-        max_iter = max_iter,
-        step = step,
-        tolerance = tolerance
-    )
-    return(gcv_params)
-}
+## This program is free software: you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or
+## (at your option) any later version.
 
-is_nonparametric <- function(formula, data) {
-    return(length(labels(terms(formula))) == 1 &&
-        !(labels(terms(formula))[1] %in% colnames(data)))
-}
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
 
-is_in_list <- function(key, list) {
-    if(!is.character(key)) stop("invalid key to list argument")
-    return(key %in% names(list))
-}
+## You should have received a copy of the GNU General Public License
+## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-parse_fpirls_args <- function(cpp_model, args) {
-    if (is_in_list("fpirls_params", args)) {
-        if (is_in_list("tolerance", args[["fpirls_params"]])) {
-            cpp_model$set_fpirls_tolerance(as.double(args[["fpirls_params"]]$tolerance))
-        }
-        if (is_in_list("max_iter", args[["fpirls_params"]])) {
-            cpp_model$set_fpirls_max_iter(as.integer(args[["fpirls_params"]]$max_iter))
-        }
-    }
-}
+## colored output
+colored_text <- function(color, text) cat(paste0("\033[0;", color, "m", text, "\033[0m"))
+red <- function(text) colored_text(31, text)
+green <- function(text) colored_text(32, text)
+yellow <- function(text) colored_text(33, text)
+blue <- function(text) colored_text(34, text)
 
-#' S3 dispatch to fit argument processing
-#' @export
-parse_eval_args <- function(x, ...) UseMethod("parse_eval_args")
+lhs <- function(formula) setdiff(all.vars(formula), labels(terms(formula)))
+rhs <- function(formula) labels(terms(formula))
 
 #' @export
-parse_eval_args.sr <- function(x, ...) {
-    return(invisible(NULL))
+gcv <- function(lambda = NULL, optimizer = c("grid", "newton", "gd", "bfgs"),
+                edf_evaluation = c("stochastic", "exact"), seed = NULL, n_mc_samples = 100, max_iter = 20,
+                step = 1e-2, tolerance = 1e-4) {
+  out <- list(
+    calibration = "gcv",
+    lambda = as.matrix(lambda),
+    ## edf computation settings
+    edf = match.arg(edf_evaluation),
+    n_mc_samples = n_mc_samples,
+    seed = if(is.null(seed)) -1 else seed,
+    ## optimization settings
+    optimizer = match.arg(optimizer),
+    max_iter = max_iter,
+    tolerance = tolerance,
+    step = step
+  )
+  return(out)
 }
 
-#' @export
-parse_eval_args.gsr <- function(x, ...) {
-    args <- list(...)
-    cpp_model_ <- args$cpp_model
-    ## parse and set FPIRLS parameters, if provided
-    parse_fpirls_args(cpp_model_, args)
+model_parse_args <- function(x, ...) UseMethod("model_parse_args", x)
+model_parse_args.SRPDE <- function(x, args) {
+  return(list())
+}
+model_parse_args.GSRPDE <- function(x, args) {
+  out <- list()
+  ## defaults
+  out$fpirls_tolerance <- 1e-4
+  out$fprils_max_iter <- 200
+  if ("fpirls_params" %in% names(args)) {
+    out$fpirls_tolerance <- if ("tolerance" %in% args[["fpirls_params"]]) args[["fpirls_params"]]$tolerance
+    out$fpirls_max_iter <- if ("max_iter" %in% args[["fpirls_params"]]) args[["fpirls_params"]]$max_iter
+  }
+  return(out)
 }
 
-#' @export
-parse_eval_args.qsr <- function(x, ...) {
-    args <- list(...)
-    cpp_model_ <- args$cpp_model
-    ## parse and set FPIRLS parameters, if provided
-    parse_fpirls_args(cpp_model_, args)
-    ## set quantile level
-    if(is_in_list("alpha", args)) {
-        alpha = as.double(args[["alpha"]])
-        if ( alpha <= 0 || alpha > 1 ) stop("quantile level alpha should be between 0 and 1")
-        cpp_model_$set_alpha(as.double(args[["alpha"]]))
-    }
-}
-
-## utility R wrapper around C++ PDE concept
-.RegressionModelCtr <- setRefClass(
-    Class = "FdaPDEModel",
-    fields = c(
-        cpp_model  = "ANY", ## C++ model backend
-        cpp_gcv    = "ANY", ## C++ gcv functor backend
-        lambda_fixed = "logical",
-        spatial_field = "FunctionObject",
-        model_tag  = "ANY"  ## model type tag
-    ),
-    methods = c(
-        fit = function(...) {
-            args <- list(...)
-            ## customize fitting behaviour, depending on model type tag
-            parse_eval_args(model_tag, cpp_model, args)
-            ## set up calibration approach
-            if (is_in_list("lambda", args)) {
-                if (args[["lambda"]]$calibration_type == "gcv") {
-                    ## require GCV-based selection of smoothing parameter
-                    cpp_model$init()
-                    cpp_gcv$calibrate(args[["lambda"]]) ## forward arguments
-
-                    ## final fit with optimal lambda
-                    opt_lambda = args[["lambda"]]$lambda[which.min(cpp_gcv$gcvs())]
-                    cpp_model$set_lambda_D(opt_lambda)
-                    cpp_model$init()
-                    cpp_model$solve()
-                }
-            } else if (lambda_fixed) { ## fit with provided lambda
-                cpp_model$init()
-                cpp_model$solve()
-            } else {
-                ## default
-                stop("using default")
-            }
-            spatial_field$coeff = as.matrix(cpp_model$f())
-        },
-        gcvs = function() { return(cpp_gcv$gcvs()) },
-        edfs = function() { return(cpp_gcv$edfs()) }
-    )
-)
-
-setGeneric("SRPDE", function(formula, data, domain, penalty, ...) { standardGeneric("SRPDE") })
-
-.SRPDE <- function(formula, data, domain, penalty, lambda,
-                   family = c("gaussian", "poisson", "exponential", "gamma", "bernulli", "quantile")) {
-    ## count number of terms in formula which are not covariates
-    count <- 0
-    field_name <- NULL
-    for (term in labels(terms(formula))) {
+.SpatialRegression <- R6::R6Class(
+  "SpatialRegressionModel",
+  private = list(
+    model_   = NULL,
+    formula_ = formula(),
+    penalty_ = NULL,
+    family_  = character()
+  ),
+  public = list(
+    initialize = function(formula, data, penalty = NULL, family = NULL) {
+      private$formula_ <- formula
+      private$family_ <- family
+      field_name <- NULL
+      for (term in labels(terms(formula))) {
         if (!term %in% colnames(data)) {
-            count <- count + 1
-            field_name <- term
+          if (!is.null(field_name)) stop("ill-formed formula, missing field.")
+          field_name <- term
         }
-    }
-    if (count == 0) stop("no spatial field found in formula.")
-    if (count >= 2) stop("more than one spatial field supplied in formula.")
-    ## if not supplied, default to simple laplacian penalty
-    if (is.null(penalty)) {
-        penalty <- simple_laplacian_penalty(domain)
-        ## inject field in calling environment
-        field <- Function(FunctionSpace(domain))
-        eval(parse(text = paste(field_name, "<<- field", sep = "")))
-    } else {
-        ## TODO: check that name of the spatial field in formula coincide with name of field in penalty
-        
-    }
-    ## extract data according to formula
-    obs <- data[all.vars(formula)[1]]
-    cov <- NULL
-    if (!is_nonparametric(formula, data)) {
-        covariates <- labels(terms(formula))
-        covariates <- covariates[!covariates == field_name]
-        cov <- as.matrix(data[covariates])
-    }
-    ## create model object
-    model_ <- NULL ## C++ model backend
-    model_tag <- list() ## model type tag
-    family_ <- match.arg(family)
-    model_ <- switch(family_,
-        "gaussian" = {
-            class(model_tag) <- "sr"
-            new(cpp_srpde, penalty, 0)
-        },
-        "quantile" = {
-            class(model_tag) <- "qsr"
-            new(cpp_qsrpde_s, penalty, 0)
-        },
-        { ## default case
-            class(model_tag) <- "gsr"
-            new(cpp_gsrpde_s, penalty, 0, family_)
+      }
+      if (is.null(penalty)) {
+        ## default to simple laplacian penalty, homogeneous neumann and dirichlet BCs, null forcing term
+        f <- eval(parse(text = as.character(field_name)))
+        if (!inherits(f, "SymbolicFunction")) {
+          stop(as.charcter(field_name), ": not a SymbolicFunction object.")
         }
-    )
-    model_$set_observations(as.matrix(obs))
+        Lf <- -laplace(f, field_name)
+        u <- function(nodes) matrix(rep(0, times = nrow(nodes)), ncol = 1)
+        penalty <- PDE(Lf, u)
+      }
+      private$penalty_ <- penalty
+      ## TODO: need to derive type of sampling
+      sampling <- 0
 
-    if (!is.null(lambda)) model_$set_lambda_D(lambda)
-    if (!is.null(cov)) model_$set_covariates(as.matrix(cov))
+      ## instantiate model cpp backend
+      if (family == "gaussian") {
+        private$model_ <- new(cpp_srpde, get_private(penalty)$pde_, sampling)
+      } else if (family %in% names(distributions)) {
+        private$model_ <- new(
+          cpp_gsrpde_space, get_private(penalty)$pde_, sampling, cpp_aligned_index(distributions[[family]])
+        )
+      }
+      ## analyze formula
+      if (length(lhs(formula)) == 0) stop("ill-formed formula, missing lhs")
+      private$model_$set_observations(as.matrix(data[lhs(formula)]))
+      ## check if model has covariates
+      if (length(setdiff(all.vars(formula), c(lhs(formula), field_name))) != 0) { 
+        covnames <- setdiff(labels(terms(formula)), field_name)
+        private$model_$set_covariates(as.matrix(data[covnames]))
+      }
+    },
+    fit = function(...) {
+      args <- list(...)
+      fit_data <- list()
+      ## select calibration type
+      if (is.numeric(args$calibration)) {
+        fit_data$calibration <- "off"
+        fit_data$lambda <- as.matrix(args$calibration)
+      } else {
+        if (is.list(args$calibration)) {
+          fit_data <- c(fit_data, args$calibration)
+        } else {
+          stop("invalid type bounded to calibration argument.")
+        }
+      }
+      fit_data <- modifyList(model_parse_args(self, args), fit_data) ## S3 dispatch to model specific fit logic
+      private$model_$fit(fit_data)
+    },
+    print = function(...) {
+      cat("Spatial regression model:", deparse(private$formula_), "\n")
+      cat("PDE:", private$penalty_$operator, "\n")
+      ## S3 dispatch for specific printing logic
+    }
+  ),
+  ## active bindings
+  active = list(
+    f = function() as.matrix(private$model_$f()),
+    fitted = function() as.matrix(private$model_$fitted()),
+    gcvs = function() as.matrix(private$model_$gcvs()),
+    edfs = function() as.matrix(private$model_$edfs()),
+    optimal_lambda = function() as.matrix(private$model_$optimum())
+  )
+)
 
-    return(.RegressionModelCtr(
-        cpp_model = model_,
-        model_tag = model_tag,
-        lambda_fixed = !is.null(lambda),
-        cpp_gcv = new(cpp_gcv, model_$get_gcv()),
-        spatial_field = field
-    ))
+## these indexes, once cpp aligned, must match with the model instantiation at cpp side
+distributions <- list(poisson = 1, bernulli = 2, exponential = 3, gamma = 4)
+
+## space-only regression model family
+SRPDE <- function(formula, data, penalty = NULL,
+                  family = c("gaussian", "poisson", "bernulli", "exponential", "gamma", "quantile")) {
+  family <- match.arg(family)
+  model <- .SpatialRegression$new(formula, data, penalty, family)
+  if (family == "gaussian") {
+      class(model) <- append("SRPDE", class(model))
+  }
+  if (family %in% names(distributions)) {
+    class(model) <- append("GSRPDE", class(model))
+  }
+  return(model)
 }
 
-#' @export
-setMethod(
-    f = "SRPDE",
-    signature = c(
-        formula = "formula", data = "ANY", domain = "MeshObject", penalty = "missing"
-    ),
-    ## default to simple laplacian penalty
-    definition = function(formula, data, domain, lambda = NULL, family = "gaussian") {
-        .SRPDE(formula, data, domain, NULL, lambda, family)
-    }
-)
 
-#' @export
-setMethod(
-    f = "SRPDE",
-    signature = c(
-        formula = "formula", data = "ANY", domain = "missing", penalty = "ANY"
-    ),
-    ## general penalty (domain information indirectly supplied from penalty)
-    definition = function(formula, data, penalty, lambda = NULL, family = "gaussian") {
-        .SRPDE(formula, data, NULL, penalty, lambda, family)
-    }
-)
+## #' @export
+## parse_eval_args.qsr <- function(x, ...) {
+##     args <- list(...)
+##     cpp_model_ <- args$cpp_model
+##     ## parse and set FPIRLS parameters, if provided
+##     parse_fpirls_args(cpp_model_, args)
+##     ## set quantile level
+##     if(is_in_list("alpha", args)) {
+##         alpha = as.double(args[["alpha"]])
+##         if ( alpha <= 0 || alpha > 1 ) stop("quantile level alpha should be between 0 and 1")
+##         cpp_model_$set_alpha(as.double(args[["alpha"]]))
+##     }
+## }
