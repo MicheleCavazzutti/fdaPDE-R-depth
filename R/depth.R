@@ -20,7 +20,7 @@
     cpp_model  = "ANY", ## C++ model backend
     phi_function = "ANY", ## This phi function will be used to compute the weight function, when needed. If left to NULL,the identity function will be employed
     # Note that here I will eventually store objects used in future to save the C++ computations, even if it is not really required with this structure
-    fun_representation_storage = "ANY", ## This matrix contains the Voronoi representation of the functions already computed. Will be used for the predict.
+    fun_representation_storage = "ANY" ## This matrix contains the Voronoi representation of the functions already computed. Will be used for the predict.
     # Note: probably the storage is not needed anymore, since we have already available the C++ matrix. In the future we will evaluate its elimination
   ),
   methods = c(
@@ -34,7 +34,7 @@
       # Now solve the problem
       cpp_model$solve() # This action computes the integrated functional depth and all the quantities required, in Cpp
       # Store the already computed Voronoi representation of the functions to be used in predict.
-      fun_representation_storage =  cpp_model$get_storage()
+      #fun_representation_storage =  cpp_model$get_storage()
     },
     predict = function(f_pred, depth_types){
       # Prepare the matrices for prediction, in the same 

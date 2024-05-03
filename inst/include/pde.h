@@ -46,8 +46,8 @@ struct PDE {
 
 template <int M, int N, int R> class PDE_ : public PDE {
    private:
-    using DomainType = core::Mesh<M, N>;
-    using QuadratureRule = core::Integrator<FEM, DomainType::local_dimension, R>;
+    using DomainType = core::Triangulation<M, N>;
+    using QuadratureRule = core::Integrator<FEM, DomainType::local_dim, R>;
     template <typename L> using PDEType = core::PDE<DomainType, L, DMatrix<double>, core::FEM, core::fem_order<R>>;
     // internal data
     DomainType domain_ {};           // triangulation

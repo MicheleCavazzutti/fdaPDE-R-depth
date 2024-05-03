@@ -22,46 +22,46 @@ namespace fdapde {
 namespace r {
 
 #define fe_functional_space_rcpp_interface(LocalDim, EmbedDim, Order)                                                  \
-       method("size",             &FEFunctionalSpace<core::Mesh<LocalDim, EmbedDim>, Order>::size            )         \
-      .method("eval",             &FEFunctionalSpace<core::Mesh<LocalDim, EmbedDim>, Order>::Psi             )         \
-      .method("integrate",        &FEFunctionalSpace<core::Mesh<LocalDim, EmbedDim>, Order>::integrate       )         \
-      .method("dofs_coords",      &FEFunctionalSpace<core::Mesh<LocalDim, EmbedDim>, Order>::dofs_coords     )         \
-      .method("eval_expansion",   &FEFunctionalSpace<core::Mesh<LocalDim, EmbedDim>, Order>::eval_expansion  )         \
-      .method("quadrature_nodes", &FEFunctionalSpace<core::Mesh<LocalDim, EmbedDim>, Order>::quadrature_nodes)
+       method("size",             &FEFunctionalSpace<core::Triangulation<LocalDim, EmbedDim>, Order>::size            )         \
+      .method("eval",             &FEFunctionalSpace<core::Triangulation<LocalDim, EmbedDim>, Order>::Psi             )         \
+      .method("integrate",        &FEFunctionalSpace<core::Triangulation<LocalDim, EmbedDim>, Order>::integrate       )         \
+      .method("dofs_coords",      &FEFunctionalSpace<core::Triangulation<LocalDim, EmbedDim>, Order>::dofs_coords     )         \
+      .method("eval_expansion",   &FEFunctionalSpace<core::Triangulation<LocalDim, EmbedDim>, Order>::eval_expansion  )         \
+      .method("quadrature_nodes", &FEFunctionalSpace<core::Triangulation<LocalDim, EmbedDim>, Order>::quadrature_nodes)
   
-using cpp_fe_space_lagrange_2_2_1 = FEFunctionalSpace<core::Mesh<2, 2>, 1>;
+using cpp_fe_space_lagrange_2_2_1 = FEFunctionalSpace<core::Triangulation<2, 2>, 1>;
 RCPP_MODULE(cpp_fe_space_lagrange_2_2_1) {
-    Rcpp::class_<FEFunctionalSpace<core::Mesh<2, 2>, 1>>("cpp_fe_space_lagrange_2_2_1")
+    Rcpp::class_<FEFunctionalSpace<core::Triangulation<2, 2>, 1>>("cpp_fe_space_lagrange_2_2_1")
       .constructor<Rcpp::Environment, int>()
       .fe_functional_space_rcpp_interface(2, 2, 1);
 }
-// using cpp_fe_space_lagrange_2_2_2 = FEFunctionalSpace<core::Mesh<2, 2>, 2>;
+// using cpp_fe_space_lagrange_2_2_2 = FEFunctionalSpace<core::Triangulation<2, 2>, 2>;
 // RCPP_MODULE(cpp_fe_space_lagrange_2_2_2) {
-//     Rcpp::class_<FEFunctionalSpace<core::Mesh<2, 2>, 2>>("cpp_fe_space_lagrange_2_2_2")
+//     Rcpp::class_<FEFunctionalSpace<core::Triangulation<2, 2>, 2>>("cpp_fe_space_lagrange_2_2_2")
 //       .constructor<Rcpp::Environment, int>()
 //       .fe_functional_space_rcpp_interface(2, 2, 2);
 // }
-using cpp_fe_space_lagrange_2_3_1 = FEFunctionalSpace<core::Mesh<2, 3>, 1>;
+using cpp_fe_space_lagrange_2_3_1 = FEFunctionalSpace<core::Triangulation<2, 3>, 1>;
 RCPP_MODULE(cpp_fe_space_lagrange_2_3_1) {
-    Rcpp::class_<FEFunctionalSpace<core::Mesh<2, 3>, 1>>("cpp_fe_space_lagrange_2_3_1")
+    Rcpp::class_<FEFunctionalSpace<core::Triangulation<2, 3>, 1>>("cpp_fe_space_lagrange_2_3_1")
       .constructor<Rcpp::Environment, int>()
       .fe_functional_space_rcpp_interface(2, 3, 1);
 }
-// using cpp_fe_space_lagrange_2_3_2 = FEFunctionalSpace<core::Mesh<2, 3>, 2>;
+// using cpp_fe_space_lagrange_2_3_2 = FEFunctionalSpace<core::Triangulation<2, 3>, 2>;
 // RCPP_MODULE(cpp_fe_space_lagrange_2_3_2) {
-//     Rcpp::class_<FEFunctionalSpace<core::Mesh<2, 3>, 2>>("cpp_fe_space_lagrange_2_3_2")
+//     Rcpp::class_<FEFunctionalSpace<core::Triangulation<2, 3>, 2>>("cpp_fe_space_lagrange_2_3_2")
 //       .constructor<Rcpp::Environment, int>()
 //       .fe_functional_space_rcpp_interface(2, 3, 2);
 // }
-using cpp_fe_space_lagrange_3_3_1 = FEFunctionalSpace<core::Mesh<3, 3>, 1>;
+using cpp_fe_space_lagrange_3_3_1 = FEFunctionalSpace<core::Triangulation<3, 3>, 1>;
 RCPP_MODULE(cpp_fe_space_lagrange_3_3_1) {
-    Rcpp::class_<FEFunctionalSpace<core::Mesh<3, 3>, 1>>("cpp_fe_space_lagrange_3_3_1")
+    Rcpp::class_<FEFunctionalSpace<core::Triangulation<3, 3>, 1>>("cpp_fe_space_lagrange_3_3_1")
       .constructor<Rcpp::Environment, int>()
       .fe_functional_space_rcpp_interface(3, 3, 1);
 }
-// using cpp_fe_space_lagrange_3_3_2 = FEFunctionalSpace<core::Mesh<3, 3>, 2>;
+// using cpp_fe_space_lagrange_3_3_2 = FEFunctionalSpace<core::Triangulation<3, 3>, 2>;
 // RCPP_MODULE(cpp_fe_space_lagrange_3_3_2) {
-//     Rcpp::class_<FEFunctionalSpace<core::Mesh<3, 3>, 2>>("cpp_fe_space_lagrange_3_3_2")
+//     Rcpp::class_<FEFunctionalSpace<core::Triangulation<3, 3>, 2>>("cpp_fe_space_lagrange_3_3_2")
 //       .constructor<Rcpp::Environment, int>()
 //       .fe_functional_space_rcpp_interface(3, 3, 2);
 // }

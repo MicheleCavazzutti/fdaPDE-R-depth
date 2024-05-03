@@ -60,7 +60,7 @@ struct FunctionalSpace__ {
 template <typename DomainType, int Order> class FEFunctionalSpace {
    private:
     using FunctionalSpaceType = fdapde::erase<fdapde::heap_storage, FunctionalSpace__>;
-    using QuadratureRule = core::Integrator<core::FEM, DomainType::local_dimension, Order>;
+    using QuadratureRule = core::Integrator<core::FEM, DomainType::local_dim, Order>;
     using VectorType = DVector<double>;
     using MatrixType = DMatrix<double>;
 
@@ -73,7 +73,7 @@ template <typename DomainType, int Order> class FEFunctionalSpace {
     // constructor
     FEFunctionalSpace(Rcpp::Environment mesh, int type) {
         // set domain
-        using RDomainType = r::Mesh<DomainType::local_dimension, DomainType::embedding_dimension>;
+        using RDomainType = r::Mesh<DomainType::local_dim, DomainType::embed_dim>;
         SEXP meshptr = mesh[".pointer"];
         RDomainType* ptr = reinterpret_cast<RDomainType*>(R_ExternalPtrAddr(meshptr));
         domain_ = ptr->domain();
@@ -111,7 +111,7 @@ template <typename DomainType, int Order> class FEFunctionalSpace {
 // space of BSpline basis functions
 template <int Order> class BSplineFunctionalSpace {
    private:
-    using DomainType = core::Mesh<1, 1>;
+    using DomainType = core::Triangulation<1, 1>;
     using FunctionalSpaceType = fdapde::erase<fdapde::heap_storage, FunctionalSpace__>;
     using QuadratureRule = core::Integrator<core::SPLINE, 1, Order>;
     using VectorType = DVector<double>;
@@ -126,7 +126,7 @@ template <int Order> class BSplineFunctionalSpace {
     // constructor
     BSplineFunctionalSpace(Rcpp::Environment mesh, int type) {
         // set domain
-        using RDomainType = r::Mesh<DomainType::local_dimension, DomainType::embedding_dimension>;
+        using RDomainType = r::Mesh<DomainType::local_dim, DomainType::embed_dim>;
         SEXP meshptr = mesh[".pointer"];
         RDomainType* ptr = reinterpret_cast<RDomainType*>(R_ExternalPtrAddr(meshptr));
         domain_ = ptr->domain();

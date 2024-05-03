@@ -31,8 +31,8 @@ namespace r {
 
 using cpp_mesh_1_1 = Mesh<1, 1>;
 RCPP_MODULE(cpp_mesh_1_1) { Rcpp::class_<Mesh<1, 1>>("cpp_mesh_1_1").mesh_rcpp_interface(1, 1); }
-using cpp_mesh_1_2 = Mesh<1, 2>;
-RCPP_MODULE(cpp_mesh_1_2) { Rcpp::class_<Mesh<1, 2>>("cpp_mesh_1_2").mesh_rcpp_interface(1, 2); }
+  //using cpp_mesh_1_2 = Mesh<1, 2>;
+  //RCPP_MODULE(cpp_mesh_1_2) { Rcpp::class_<Mesh<1, 2>>("cpp_mesh_1_2").mesh_rcpp_interface(1, 2); }
 using cpp_mesh_2_2 = Mesh<2, 2>;
 RCPP_MODULE(cpp_mesh_2_2) { Rcpp::class_<Mesh<2, 2>>("cpp_mesh_2_2").mesh_rcpp_interface(2, 2); }
 using cpp_mesh_2_3 = Mesh<2, 3>;

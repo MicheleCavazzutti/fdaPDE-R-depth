@@ -41,7 +41,7 @@ using fdapde::core::FEM;
 using fdapde::core::fem_order;
 using fdapde::core::Integrator;
 using fdapde::core::laplacian;
-using fdapde::core::Mesh;
+using fdapde::core::Triangulation;
 using fdapde::core::PDE;
 using fdapde::core::pde_ptr;
 using fdapde::core::reaction;
@@ -78,20 +78,20 @@ public:
     using RDomainType = r::Mesh<M, N>;
     SEXP meshptr = mesh[".pointer"];
     RDomainType* ptr = reinterpret_cast<RDomainType*>(R_ExternalPtrAddr(meshptr));
-    core::Mesh<M, N> domain = ptr->domain();
+    core::Triangulation<M, N> domain = ptr->domain();
     // define time domain
-    core::Mesh<1,1> time_mesh(a, b, n);
+    core::Triangulation<1,1> time_mesh(a, b, n);
 
     sampling_ = models::Sampling(sampling_type);
     
     // define regularizing PDE in space
     auto Ld = -core::laplacian<fdapde::core::FEM>();
     DMatrix<double> u = DMatrix<double>::Zero(domain.n_elements() * 3 * time_mesh.n_nodes(), 1);
-    space_pen_ = core::PDE<core::Mesh<M, N>, decltype(Ld), DMatrix<double>, core::FEM, core::fem_order<1>>(domain, Ld, u);
+    space_pen_ = core::PDE<core::Triangulation<M, N>, decltype(Ld), DMatrix<double>, core::FEM, core::fem_order<1>>(domain, Ld, u);
 
     // define regularizing PDE in time
     auto Lt = -core::bilaplacian<core::SPLINE>();
-    time_pen_ = core::PDE<core::Mesh<1, 1>, decltype(Lt), DMatrix<double>, core::SPLINE, core::spline_order<3>>(time_mesh, Lt);
+    time_pen_ = core::PDE<core::Triangulation<1, 1>, decltype(Lt), DMatrix<double>, core::SPLINE, core::spline_order<3>>(time_mesh, Lt);
   }
   // setters
   void set_lambda_D(double lambda_D) { lambda_D_ = lambda_D; }
