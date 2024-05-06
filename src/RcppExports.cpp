@@ -24,41 +24,33 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP _rcpp_module_boot_cpp_2d_depth();
 RcppExport SEXP _rcpp_module_boot_cpp_fe_space_lagrange_2_2_1();
 RcppExport SEXP _rcpp_module_boot_cpp_fe_space_lagrange_2_3_1();
 RcppExport SEXP _rcpp_module_boot_cpp_fe_space_lagrange_3_3_1();
 RcppExport SEXP _rcpp_module_boot_cpp_bspline_space();
 RcppExport SEXP _rcpp_module_boot_cpp_mesh_1_1();
-RcppExport SEXP _rcpp_module_boot_cpp_mesh_1_2();
 RcppExport SEXP _rcpp_module_boot_cpp_mesh_2_2();
 RcppExport SEXP _rcpp_module_boot_cpp_mesh_2_3();
 RcppExport SEXP _rcpp_module_boot_cpp_mesh_3_3();
 RcppExport SEXP _rcpp_module_boot_cpp_pde_2_2_1();
 RcppExport SEXP _rcpp_module_boot_cpp_pde_3_3_1();
-RcppExport SEXP _rcpp_module_boot_cpp_network_depth();
-RcppExport SEXP _rcpp_module_boot_cpp_2d_depth();
-RcppExport SEXP _rcpp_module_boot_cpp_surface_depth();
-RcppExport SEXP _rcpp_module_boot_cpp_3d_depth();
 RcppExport SEXP _rcpp_module_boot_cpp_srpde();
 RcppExport SEXP _rcpp_module_boot_cpp_gsrpde_space();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_fdaPDE2_kronecker_tensor_product", (DL_FUNC) &_fdaPDE2_kronecker_tensor_product, 2},
+    {"_rcpp_module_boot_cpp_2d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_2d_depth, 0},
     {"_rcpp_module_boot_cpp_fe_space_lagrange_2_2_1", (DL_FUNC) &_rcpp_module_boot_cpp_fe_space_lagrange_2_2_1, 0},
     {"_rcpp_module_boot_cpp_fe_space_lagrange_2_3_1", (DL_FUNC) &_rcpp_module_boot_cpp_fe_space_lagrange_2_3_1, 0},
     {"_rcpp_module_boot_cpp_fe_space_lagrange_3_3_1", (DL_FUNC) &_rcpp_module_boot_cpp_fe_space_lagrange_3_3_1, 0},
     {"_rcpp_module_boot_cpp_bspline_space", (DL_FUNC) &_rcpp_module_boot_cpp_bspline_space, 0},
     {"_rcpp_module_boot_cpp_mesh_1_1", (DL_FUNC) &_rcpp_module_boot_cpp_mesh_1_1, 0},
-    {"_rcpp_module_boot_cpp_mesh_1_2", (DL_FUNC) &_rcpp_module_boot_cpp_mesh_1_2, 0},
     {"_rcpp_module_boot_cpp_mesh_2_2", (DL_FUNC) &_rcpp_module_boot_cpp_mesh_2_2, 0},
     {"_rcpp_module_boot_cpp_mesh_2_3", (DL_FUNC) &_rcpp_module_boot_cpp_mesh_2_3, 0},
     {"_rcpp_module_boot_cpp_mesh_3_3", (DL_FUNC) &_rcpp_module_boot_cpp_mesh_3_3, 0},
     {"_rcpp_module_boot_cpp_pde_2_2_1", (DL_FUNC) &_rcpp_module_boot_cpp_pde_2_2_1, 0},
     {"_rcpp_module_boot_cpp_pde_3_3_1", (DL_FUNC) &_rcpp_module_boot_cpp_pde_3_3_1, 0},
-    {"_rcpp_module_boot_cpp_network_depth", (DL_FUNC) &_rcpp_module_boot_cpp_network_depth, 0},
-    {"_rcpp_module_boot_cpp_2d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_2d_depth, 0},
-    {"_rcpp_module_boot_cpp_surface_depth", (DL_FUNC) &_rcpp_module_boot_cpp_surface_depth, 0},
-    {"_rcpp_module_boot_cpp_3d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_3d_depth, 0},
     {"_rcpp_module_boot_cpp_srpde", (DL_FUNC) &_rcpp_module_boot_cpp_srpde, 0},
     {"_rcpp_module_boot_cpp_gsrpde_space", (DL_FUNC) &_rcpp_module_boot_cpp_gsrpde_space, 0},
     {NULL, NULL, 0}

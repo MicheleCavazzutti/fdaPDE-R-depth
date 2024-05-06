@@ -14,27 +14,32 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-.DepthModelCtr <- setRefClass(
-  Class = "DepthModel",
-  fields = c(
-    cpp_model  = "ANY", ## C++ model backend
-    phi_function = "ANY", ## This phi function will be used to compute the weight function, when needed. If left to NULL,the identity function will be employed
+.DepthModel <- R6::R6Class(
+  "DepthModel",
+  private = list(
+    model_  = "ANY", ## C++ model backend
+    phi_function_ = "ANY" ## This phi function will be used to compute the weight function, when needed. If left to NULL,the identity function will be employed
     # Note that here I will eventually store objects used in future to save the C++ computations, even if it is not really required with this structure
-    fun_representation_storage = "ANY" ## This matrix contains the Voronoi representation of the functions already computed. Will be used for the predict.
+    #fun_representation_storage = "ANY" ## This matrix contains the Voronoi representation of the functions already computed. Will be used for the predict.
     # Note: probably the storage is not needed anymore, since we have already available the C++ matrix. In the future we will evaluate its elimination
   ),
-  methods = c(
-    fit = function() { # function(...) {
-      # For the moment I assume that cpp_model has already been filled with all the data needed
-      cpp_model$init() # This activates the model, see R_cpp to understand how other people behave with this method
+  public = list(
+    initialize = function() { # Note: this code will be executed immediately when a user calls the Depth function. Therefore, when the object exists, it has been already solved!!
+      ### I'm not really sure to want this code exectued here. Eventually, the voroni tessellation will be a heavy step. So maybe it is better to demand it to a second function
+      print("Start Voronoi tessellation evaluation")
+      model_$init() # Initialization of the model, allows to pass the phi-function evaluation to C++ class.
+      print("Voronoi tessellation evaluated")
       
+      # I assume that cpp_model has already been filled with all the data needed
       q_density_matrix <- cpp_model$get_density_vector ### Once in C++ we have computed the Voronoi representation of the functions, the density Q(p) is available. Therefore, we can evaluate the phi function here.
-      cpp_model$set_phi_matrix(phi_function(q_density_matrix)) ### Apply the phi function to the empirical computed measures. the final weight will be computed inside Cpp class
       
+      # Phi function can be evaluated only in R. The most convenient path is to evaluate it here and pass it through R/C++ interface
+      model_$set_phi_function_evaluation(phi_function_(q_density_matrix)) ### Apply the phi function to the empirical computed measures. The final weight will be computed inside Cpp class
+      
+    },
+    fit = function() { 
       # Now solve the problem
-      cpp_model$solve() # This action computes the integrated functional depth and all the quantities required, in Cpp
-      # Store the already computed Voronoi representation of the functions to be used in predict.
-      #fun_representation_storage =  cpp_model$get_storage()
+      model_$solve() # This action computes the integrated functional depth and all the quantities required, in Cpp
     },
     predict = function(f_pred, depth_types){
       # Prepare the matrices for prediction, in the same 
@@ -42,12 +47,15 @@
       f_pred[f_pred_mask] <- rep(0,sum(f_pred_mask))
       
       # Set the depth types for prediction
-      cpp_model$set_pred_depth_type(depth_types)
+      model_$set_pred_depth_type(depth_types)
       
-      output = model$predict(f_pred, f_pred_mask)
+      output = model_$predict(f_pred, f_pred_mask)
       
       print("Still to be concluded")
-      }, # This function may be used to compute the depth of some new functions, w.r.t. the functions used in fit
+    }, # This function may be used to compute the depth of some new functions, w.r.t. the functions used in fit
+    phi_function = function(value){
+      return(phi_function_(value))
+    },
     #domain = function(){ return(cpp_model$domain() }
     # ComputedDepths = function() { return(cpp_model$ComputedDepths()) }, # Solution, divided for univariate depth
     # ComputedHypo = function() { return(cpp_model$ComputedHypo()) }, # Modified Hypograph depth, used for outliers detection. Computed only if MHRD is required
@@ -57,18 +65,67 @@
     # ThirdQuartile = function() { return(cpp_model$ThirdQuartile()) }, # ThirdQuartile, available after computation
     # UpperFence = function() { return(cpp_model$UpperFence()) }, # UpperFence, available after computation
     # LowerFence = function() { return(cpp_model$LowerFence()) }, # LowerFence, available after computation
-    output = function(){ print("To be implemented")} #Use the two output functions defined in the r_depth header } # This encapsulates all of the above (in a list), so that we expose a simpler routine
+    output = function(){ 
+      # For the moment, the output just contains the evaluation of the IFD of fit functions
+      return(model_$get_ifd())
+    } #Use the two output functions defined in the r_depth header } # This encapsulates all of the above (in a list), so that we expose a simpler routine
   )
 )
 
-# This is the generic function available to the public
-setGeneric("Depth", function(f_data, locations, domain, depth_type, phi_function) { standardGeneric("Depth") })
-
-.Depth <- function(f_data, locations, domain, depth_type, phi_function) {
-### Here I need to treat the model I have (defined in a separate file) and to fill all the things that will be needed
-### I have two cases: 1 data is a list of functions-locations couple, possibly missing
-###                   2 data is a matrix of functions with locations separately, eventually missing
-### For the moment I implement only the version with common locations, just to make it easy
+# .DepthModelCtr <- setRefClass(
+#   Class = "DepthModel",
+#   fields = c(
+#     cpp_model  = "ANY", ## C++ model backend
+#     phi_function = "ANY", ## This phi function will be used to compute the weight function, when needed. If left to NULL,the identity function will be employed
+#     # Note that here I will eventually store objects used in future to save the C++ computations, even if it is not really required with this structure
+#     fun_representation_storage = "ANY" ## This matrix contains the Voronoi representation of the functions already computed. Will be used for the predict.
+#     # Note: probably the storage is not needed anymore, since we have already available the C++ matrix. In the future we will evaluate its elimination
+#   ),
+#   methods = c(
+#     fit = function() { # function(...) {
+#       # For the moment I assume that cpp_model has already been filled with all the data needed
+#       cpp_model$init() # This activates the model, see R_cpp to understand how other people behave with this method
+#       
+#       q_density_matrix <- cpp_model$get_density_vector ### Once in C++ we have computed the Voronoi representation of the functions, the density Q(p) is available. Therefore, we can evaluate the phi function here.
+#       cpp_model$set_phi_matrix(phi_function(q_density_matrix)) ### Apply the phi function to the empirical computed measures. the final weight will be computed inside Cpp class
+#       
+#       # Now solve the problem
+#       cpp_model$solve() # This action computes the integrated functional depth and all the quantities required, in Cpp
+#       # Store the already computed Voronoi representation of the functions to be used in predict.
+#       #fun_representation_storage =  cpp_model$get_storage()
+#     },
+#     predict = function(f_pred, depth_types){
+#       # Prepare the matrices for prediction, in the same 
+#       f_pred_mask <- is.na(f_data)
+#       f_pred[f_pred_mask] <- rep(0,sum(f_pred_mask))
+#       
+#       # Set the depth types for prediction
+#       cpp_model$set_pred_depth_type(depth_types)
+#       
+#       output = model$predict(f_pred, f_pred_mask)
+#       
+#       print("Still to be concluded")
+#       }, # This function may be used to compute the depth of some new functions, w.r.t. the functions used in fit
+#     #domain = function(){ return(cpp_model$domain() }
+#     # ComputedDepths = function() { return(cpp_model$ComputedDepths()) }, # Solution, divided for univariate depth
+#     # ComputedHypo = function() { return(cpp_model$ComputedHypo()) }, # Modified Hypograph depth, used for outliers detection. Computed only if MHRD is required
+#     # ComputedEpi = function() { return(cpp_model$ComputedEpi()) } # Modified Epigraph depth, used for outliers detection. Computed only if MHRD is required
+#     # median = function() { return(cpp_model$median()) }, # Median, available after computation
+#     # FirstQuartile = function() { return(cpp_model$FirstQuartile()) }, # FirstQuartile, available after computation
+#     # ThirdQuartile = function() { return(cpp_model$ThirdQuartile()) }, # ThirdQuartile, available after computation
+#     # UpperFence = function() { return(cpp_model$UpperFence()) }, # UpperFence, available after computation
+#     # LowerFence = function() { return(cpp_model$LowerFence()) }, # LowerFence, available after computation
+#     output = function(){ print("To be implemented")} #Use the two output functions defined in the r_depth header } # This encapsulates all of the above (in a list), so that we expose a simpler routine
+#   )
+# )
+ 
+# Public interface
+#' @export
+Depth <- function(f_data, locations, domain, depth_type, phi_function = NULL){
+  ### Here I need to treat the model I have (defined in a separate file) and to fill all the things that will be needed
+  ### I have two cases: 1 data is a list of functions-locations couple, possibly missing
+  ###                   2 data is a matrix of functions with locations separately, eventually missing
+  ### For the moment I implement only the version with common locations, just to make it easy
   ### Evaluate the weights somehow on nodes (if possible, otherwise demand to C++, or default)
   
   ### Define the Cpp model
@@ -77,22 +134,23 @@ setGeneric("Depth", function(f_data, locations, domain, depth_type, phi_function
   n <- ncol(domain$nodes)
   ## derive domain type
   if (m == 1 && n == 2) {
-    model_ <- new(cpp_network_depth, domain)
+    # Deactivate due to Triangulation limitations # model_ <- new(cpp_network_depth, domain)
   } else if (m == 2 && n == 2) {
     model_ <- new(cpp_2d_depth, domain)
   } else if (m == 2 && n == 3) {
-    model_ <- new(cpp_surface_depth, domain)
+    # Deactivate due to Triangulation limitations # model_ <- new(cpp_surface_depth, domain)
   } else if (m == 3 && n == 3) {
-    model_ <- new(cpp_3d_depth, domain)
+    # Deactivate due to Triangulation limitations # model_ <- new(cpp_3d_depth, domain)
   } else {
     stop("wrong input argument provided.")
   }
   
   ### DO SOMETHING TO REGULARIZE DATA and LOCATIONS
   # Still to be implemented
-  ### Pass al the preprocessed data to the underlying C++ model
+  print("Note: at the moment it is supposed that the functions are evaluated on a common set of locations. \n In future, we will allow also to provide functions defined on different sets of locations, regularizing them here")
+  ### Pass all the pre-processed data to the underlying C++ model
   
-  # Transform the matrix with NA into a dense full matrix, with NA masl
+  # Transform the matrix with NA into a dense full matrix, with NA mask
   f_data_mask <- is.na(f_data)
   f_data[f_data_mask] <- rep(0,sum(f_data_mask))
   
@@ -104,42 +162,104 @@ setGeneric("Depth", function(f_data, locations, domain, depth_type, phi_function
   domain$elements <- domain$elements - 1 ## perform index realignment for cpp handler
   model_$domain <- domain # Mesh object, used in C++
   
+  # This function will be used afterwards after the model has been initialized
+  # phi_function # functional object: needs to be a positive integrable function on Omega
   if(is.null(phi_function)){
     phi_function <- function(values){return(values)} # Default identity \phi function
   }else{
-    print("The phi function should be a positive function ")
+    print("The phi function should be a positive function \n")
   }
   
-  # This function will be used afterwards after the model has been initialized
-  # phi_function # functional object: needs to be a positive integrable function on Omega
+  print("At the moment, few checks on the parameters are provided. In future we will add further, detailed checks.")
   
-  return(.DepthModelCtr(
+  return(.DepthModel(
     cpp_model = model_,
     phi_function = phi_function,
-    fun_representation_storage = NULL
+    #fun_representation_storage = NULL
   ))
 }
 
-#' @export
-setMethod(
-  f = "Depth",
-  signature = c(
-    f_data="ANY", locations= "ANY", domain = "MeshObject", depth_type = "integer", phi_function = "missing" # function, to be set
-  ),
-  ## default to usual depth defined on # of missing data in node of the mesh
-  definition = function(f_data, locations, domain, depth_type) {
-    .Depth(f_data, locations, domain, depth_type, phi_function = NULL)
-  }
-)
 
-#' @export
-setMethod(
-  f = "Depth",
-  signature = c(
-    f_data="ANY", locations= "ANY", domain = "MeshObject", depth_type = "integer", phi_function = "ANY" # function, to be set
-  ),
-  # In general, we may take a weight  function that is a positive function integrable on Omega
-  definition = function(f_data, locations, domain, depth_type, phi_function) {
-    .Depth(f_data, locations, domain, depth_type, phi_function)
-  }
-)
+
+# This is the generic function available to the public
+#setGeneric("Depth", function(f_data, locations, domain, depth_type, phi_function) { standardGeneric("Depth") })
+
+# .Depth <- function(f_data, locations, domain, depth_type, phi_function) {
+#   ### Here I need to treat the model I have (defined in a separate file) and to fill all the things that will be needed
+#   ### I have two cases: 1 data is a list of functions-locations couple, possibly missing
+#   ###                   2 data is a matrix of functions with locations separately, eventually missing
+#   ### For the moment I implement only the version with common locations, just to make it easy
+#   ### Evaluate the weights somehow on nodes (if possible, otherwise demand to C++, or default)
+#   
+#   ### Define the Cpp model
+#   ## extract local and embedding dimensions
+#   m <- ncol(domain$elements) - 1
+#   n <- ncol(domain$nodes)
+#   ## derive domain type
+#   if (m == 1 && n == 2) {
+#     # Deactivate due to Triangulation limitations # model_ <- new(cpp_network_depth, domain)
+#   } else if (m == 2 && n == 2) {
+#     model_ <- new(cpp_2d_depth, domain)
+#   } else if (m == 2 && n == 3) {
+#     # Deactivate due to Triangulation limitations # model_ <- new(cpp_surface_depth, domain)
+#   } else if (m == 3 && n == 3) {
+#     # Deactivate due to Triangulation limitations # model_ <- new(cpp_3d_depth, domain)
+#   } else {
+#     stop("wrong input argument provided.")
+#   }
+#   
+#   ### DO SOMETHING TO REGULARIZE DATA and LOCATIONS
+#   # Still to be implemented
+#   ### Pass al the preprocessed data to the underlying C++ model
+#   
+#   # Transform the matrix with NA into a dense full matrix, with NA masl
+#   f_data_mask <- is.na(f_data)
+#   f_data[f_data_mask] <- rep(0,sum(f_data_mask))
+#   
+#   # Set the data
+#   model_$set_functional_data(f_data,f_data_mask) # f_data is a matrix of dimension n_stat_units x n_loc
+#   model_$set_locations(locations) # In the future will contain the union of the set of all the locations
+#   model_$set_depth_type(depth_type)
+#   
+#   domain$elements <- domain$elements - 1 ## perform index realignment for cpp handler
+#   model_$domain <- domain # Mesh object, used in C++
+#   
+#   if(is.null(phi_function)){
+#     phi_function <- function(values){return(values)} # Default identity \phi function
+#   }else{
+#     print("The phi function should be a positive function \n")
+#   }
+#   
+#   # This function will be used afterwards after the model has been initialized
+#   # phi_function # functional object: needs to be a positive integrable function on Omega
+#   
+#   return(.DepthModel(
+#     cpp_model = model_,
+#     phi_function = phi_function,
+#     #fun_representation_storage = NULL
+#   ))
+# }
+
+# #' @export
+# setMethod(
+#   f = "Depth",
+#   signature = c(
+#     f_data="ANY", locations= "ANY", domain = "MeshObject", depth_type = "integer", phi_function = "missing" # function, to be set
+#   ),
+#   ## default to usual depth defined on # of missing data in node of the mesh
+#   definition = function(f_data, locations, domain, depth_type) {
+#     .Depth(f_data, locations, domain, depth_type, phi_function = NULL)
+#   }
+# )
+# 
+# #' @export
+# setMethod(
+#   f = "Depth",
+#   signature = c(
+#     f_data="ANY", locations= "ANY", domain = "MeshObject", depth_type = "integer", phi_function = "ANY" # function, to be set
+#   ),
+#   # In general, we may take a weight  function that is a positive function integrable on Omega
+#   definition = function(f_data, locations, domain, depth_type, phi_function) {
+#     .Depth(f_data, locations, domain, depth_type, phi_function)
+#   }
+# )
