@@ -54,13 +54,13 @@ namespace fdapde {
       void set_functional_data(const DMatrix<double>& f_data, const DMatrix<bool>& f_data_mask) 
       {model_.set_train_functions(f_data);
 	model_.set_train_NA_matrix(f_data_mask);} // NBB substitute the "FUNCTIONAL_DATA" with an appropriate flag in the Cpp part.
-      void set_phi_function_evaluation(const DMatrix<double>& phi_function_evaluation) { model_.set_phi_function_evaluation(phi_function_evaluation); } // Evaluated phi matrix in R
+      void set_phi_function_evaluation(const DVector<double>& phi_function_evaluation) { model_.set_phi_function_evaluation(phi_function_evaluation); } // Evaluated phi matrix in R
       void set_locations(const DMatrix<double>& locations) {model_.set_locations(locations);} // NBB check that the locations cannot be directly put inside mesh
-      void set_depth_type(const DVector<int>& depth_type) {model_.set_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
+      void set_depth_types(const DVector<int>& depth_type) {model_.set_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
       void set_pred_depth_type(const DVector<int>& depth_type) {model_.set_pred_depth_type(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
   
       // getters: output management
-      DMatrix<double> get_density_vector(){ return model_.get_density_vector(); }
+      DVector<double> get_density_vector(){ return model_.get_density_vector(); }
       //DMatrix<double> get_output_matrices(){ return model_.get_output_matrices(); }
       DMatrix<double> get_ifd(){ return model_.IFD_fit(); }
       //DMatrix<double> get_storage(){ return model_.get_storage(); }
@@ -83,7 +83,7 @@ namespace fdapde {
       } // This part computes the predicted IFD, MEI, ...
   
       // destructor
-      ~R_DEPTH() = default;;
+      ~R_DEPTH() = default;
     };
 
   }
