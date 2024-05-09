@@ -48,38 +48,29 @@
       private$phi_function_ = phi_function
     },
     init = function(){
-      ### I'm not really sure to want this code exectued here. Eventually, the voroni tessellation will be a heavy step. So maybe it is better to demand it to a second function
-      print("Start Voronoi tessellation evaluation")
-      private$model_$init() # Initialization of the model, allows to pass the phi-function evaluation to C++ class.
-      print("Voronoi tessellation evaluated")
+      ### Initialization of the model: computing voronoi tessellation ad allowing for phi-function evaluation
+      private$model_$init() # Needed to pass the phi-function evaluation to C++ class.
       
-      # Once Voroni tessellation has been computed, we can extract the coverage density (probability of a function to be observed in a Voronoi cell)
-      q_density_vector <- private$model_$get_density_vector() ### Once in C++ we have computed the Voronoi representation of the functions, the density Q(p) is available. Therefore, we can evaluate the phi function here.
-      
-      #print("Debug check")
-      
-      #class(q_density_vector)
-      
-      print(q_density_vector[1])
+      # We extract from C++ the coverage density Q(p) (probability of a function to be observed in a Voronoi cell)
+      q_density_vector <- private$model_$get_density_vector() 
       
       # Apply the phi function to the empirical computed measures. The final weight will be computed inside C++ class
       private$model_$set_phi_function_evaluation(private$phi_function_(q_density_vector)) 
     },
     fit = function() { 
-      # Solve the problem : this action computes the integrated functional depth and all the quantities required, in C++
+      # Solve the problem : this action computes the integrated functional depth and all the quantities required, in C++, but does not return them
       private$model_$solve() 
     },
     predict = function(f_pred, depth_types){
-      # Prepare the matrices for prediction, in the same 
-      f_pred_mask <- is.na(f_data)
+      # Prepare the matrices for prediction, in the same fashion of the fit data
+      f_pred_mask <- is.na(f_pred)
       f_pred[f_pred_mask] <- rep(0,sum(f_pred_mask))
       
       # Set the depth types for prediction
-      private$model_$set_pred_depth_type(depth_types)
+      private$model_$set_pred_depth_types(depth_types)
       
       output = private$model_$predict(f_pred, f_pred_mask)
       
-      print("Still to be concluded")
       return(output)
     }, # This function may be used to compute the depth of some new functions, w.r.t. the functions used in fit
     phi_function = function(value){
@@ -88,8 +79,7 @@
     solve = function(){
       private$model_$solve()
     },
-    #domain = function(){ return(cpp_model$domain() }
-    # ComputedDepths = function() { return(cpp_model$ComputedDepths()) }, # Solution, divided for univariate depth
+    # domain = function(){ return(cpp_model$domain() }
     # ComputedHypo = function() { return(cpp_model$ComputedHypo()) }, # Modified Hypograph depth, used for outliers detection. Computed only if MHRD is required
     # ComputedEpi = function() { return(cpp_model$ComputedEpi()) } # Modified Epigraph depth, used for outliers detection. Computed only if MHRD is required
     # median = function() { return(cpp_model$median()) }, # Median, available after computation
@@ -125,7 +115,7 @@ Depth <- function(f_data, locations, domain, depth_type, phi_function = NULL){
     print("The phi function should be a positive function \n")
   }
   
-  print("At the moment, few checks on the parameters are provided. In future we will add further, detailed checks.")
+  print("At the moment, few checks on the parameters are provided. In future we will add further, detailed, checks.")
   
   # Build the R class, return it
   model = .DepthModel$new(domain, f_data, f_data_mask, locations, depth_type, phi_function)

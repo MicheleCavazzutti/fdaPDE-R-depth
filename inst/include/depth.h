@@ -57,7 +57,7 @@ namespace fdapde {
       void set_phi_function_evaluation(const DVector<double>& phi_function_evaluation) { model_.set_phi_function_evaluation(phi_function_evaluation); } // Evaluated phi matrix in R
       void set_locations(const DMatrix<double>& locations) {model_.set_locations(locations);} // NBB check that the locations cannot be directly put inside mesh
       void set_depth_types(const DVector<int>& depth_type) {model_.set_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
-      void set_pred_depth_type(const DVector<int>& depth_type) {model_.set_pred_depth_type(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
+      void set_pred_depth_types(const DVector<int>& depth_type) {model_.set_pred_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
   
       // getters: output management
       DVector<double> get_density_vector(){ return model_.get_density_vector(); }
@@ -78,7 +78,7 @@ namespace fdapde {
   
 	model_.predict(); 
     
-	DMatrix<double> output = model_.IFD_fit();// NBBBBB model_.get_pred_output(); // Here will be both the ifd, the MEI if required, the others.
+	DMatrix<double> output = model_.IFD_pred(); // Here will be both the ifd, the MEI if required, the others.
 	return output;
       } // This part computes the predicted IFD, MEI, ...
   
