@@ -61,9 +61,8 @@ namespace fdapde {
   
       // getters: output management
       DVector<double> get_density_vector(){ return model_.get_density_vector(); }
-      //DMatrix<double> get_output_matrices(){ return model_.get_output_matrices(); }
-      DMatrix<double> get_ifd(){ return model_.IFD_fit(); }
-      //DMatrix<double> get_storage(){ return model_.get_storage(); }
+      DMatrix<double> ifd_fit(){ return model_.IFD_fit(); }
+      DMatrix<double> ifd_pred(){ return model_.IFD_pred(); }
   
       // utilities
       void init() {
@@ -72,14 +71,11 @@ namespace fdapde {
       }
       void solve() { model_.solve(); } // This part will solve the model, computing the reciprocal depths.
   
-      DMatrix<double> predict(const DMatrix<double> & pred_data, DMatrix<bool> & pred_mask) {
+      void predict(const DMatrix<double> & pred_data, DMatrix<bool> & pred_mask) {
 	model_.set_pred_functions(pred_data);
 	model_.set_pred_NA_matrix(pred_mask);
   
 	model_.predict(); 
-    
-	DMatrix<double> output = model_.IFD_pred(); // Here will be both the ifd, the MEI if required, the others.
-	return output;
       } // This part computes the predicted IFD, MEI, ...
   
       // destructor

@@ -69,9 +69,7 @@
       # Set the depth types for prediction
       private$model_$set_pred_depth_types(depth_types)
       
-      output = private$model_$predict(f_pred, f_pred_mask)
-      
-      return(output)
+      private$model_$predict(f_pred, f_pred_mask)
     }, # This function may be used to compute the depth of some new functions, w.r.t. the functions used in fit
     phi_function = function(value){
       return(private$phi_function_(value))
@@ -87,10 +85,14 @@
     # ThirdQuartile = function() { return(cpp_model$ThirdQuartile()) }, # ThirdQuartile, available after computation
     # UpperFence = function() { return(cpp_model$UpperFence()) }, # UpperFence, available after computation
     # LowerFence = function() { return(cpp_model$LowerFence()) }, # LowerFence, available after computation
-    output = function(){ 
+    IFD_fit = function(){ 
       # For the moment, the output just contains the evaluation of the IFD of fit functions
-      return(private$model_$get_ifd())
-    } #Use the two output functions defined in the r_depth header } # This encapsulates all of the above (in a list), so that we expose a simpler routine
+      return(private$model_$ifd_fit())
+    }
+    IFD_pred = function(){ 
+      # For the moment, the output just contains the evaluation of the IFD of fit functions
+      return(private$model_$ifd_pred())
+    }
   )
 )
  
