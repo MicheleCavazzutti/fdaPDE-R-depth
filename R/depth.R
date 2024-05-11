@@ -52,7 +52,7 @@
       private$model_$init() # Needed to pass the phi-function evaluation to C++ class.
       
       # We extract from C++ the coverage density Q(p) (probability of a function to be observed in a Voronoi cell)
-      q_density_vector <- private$model_$get_density_vector() 
+      q_density_vector <- private$model_$density_vector() 
       
       # Apply the phi function to the empirical computed measures. The final weight will be computed inside C++ class
       private$model_$set_phi_function_evaluation(private$phi_function_(q_density_vector)) 
@@ -77,22 +77,31 @@
     solve = function(){
       private$model_$solve()
     },
-    # domain = function(){ return(cpp_model$domain() }
-    # ComputedHypo = function() { return(cpp_model$ComputedHypo()) }, # Modified Hypograph depth, used for outliers detection. Computed only if MHRD is required
-    # ComputedEpi = function() { return(cpp_model$ComputedEpi()) } # Modified Epigraph depth, used for outliers detection. Computed only if MHRD is required
-    # median = function() { return(cpp_model$median()) }, # Median, available after computation
-    # FirstQuartile = function() { return(cpp_model$FirstQuartile()) }, # FirstQuartile, available after computation
-    # ThirdQuartile = function() { return(cpp_model$ThirdQuartile()) }, # ThirdQuartile, available after computation
-    # UpperFence = function() { return(cpp_model$UpperFence()) }, # UpperFence, available after computation
-    # LowerFence = function() { return(cpp_model$LowerFence()) }, # LowerFence, available after computation
     IFD_fit = function(){ 
       # For the moment, the output just contains the evaluation of the IFD of fit functions
       return(private$model_$ifd_fit())
-    }
+    },
     IFD_pred = function(){ 
       # For the moment, the output just contains the evaluation of the IFD of fit functions
       return(private$model_$ifd_pred())
-    }
+    },
+    mhypo_fit = function() { return(private$model_$mhypo_fit()) },   # Modified Hypograph depth for fit function. Computed only if MHRD for fit is required
+    mepi_fit = function() { return(private$model_$mepi_fit()) },     # Modified Epigraph depth for fit functions. Computed only if MHRD for fit is required
+    mhypo_pred = function() { return(private$model_$mhypo_pred()) }, # Modified Hypograph depth for pred function. Computed only if MHRD for pred is required
+    mepi_pred = function() { return(private$model_$mepi_pred()) },    # Modified Epigraph depth for pred functions. Computed only if MHRD for  pred is required
+    medians = function() {
+      medians = private$model_$medians()
+      medians_mask = private$model_$medians_NA()
+      
+      medians[medians_mask]<-rep(NA,medians_mask) # Put to NA the missing values of the original functions
+      
+      return(medians)
+    }, # Median, available after computation
+    FirstQuartile = function() { return(private$model_$first_quartile()) }, # FirstQuartile, available after computation
+    ThirdQuartile = function() { return(private$model_$third_quartile()) }, # ThirdQuartile, available after computation
+    UpperFence = function() { return(private$model_$up_whisker()) }, # UpperFence, available after computation
+    LowerFence = function() { return(private$model_$low_whisker()) }, # LowerFence, available after computation
+    outliers = function() {return(private$models_$outliers())}
   )
 )
  

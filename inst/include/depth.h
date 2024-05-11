@@ -51,18 +51,30 @@ namespace fdapde {
   
       // setters
       // Here I will have the setters for the data internal to the C++ class that will compute depth. First I need to construct it, and then to harmonize it
+      void set_locations(const DMatrix<double>& locations) {model_.set_locations(locations);} // NBB check that the locations cannot be directly put inside mesh
+      void set_depth_types(const DVector<int>& depth_type) {model_.set_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
+      void set_pred_depth_types(const DVector<int>& depth_type) {model_.set_pred_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
       void set_functional_data(const DMatrix<double>& f_data, const DMatrix<bool>& f_data_mask) 
       {model_.set_train_functions(f_data);
 	model_.set_train_NA_matrix(f_data_mask);} // NBB substitute the "FUNCTIONAL_DATA" with an appropriate flag in the Cpp part.
       void set_phi_function_evaluation(const DVector<double>& phi_function_evaluation) { model_.set_phi_function_evaluation(phi_function_evaluation); } // Evaluated phi matrix in R
-      void set_locations(const DMatrix<double>& locations) {model_.set_locations(locations);} // NBB check that the locations cannot be directly put inside mesh
-      void set_depth_types(const DVector<int>& depth_type) {model_.set_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
-      void set_pred_depth_types(const DVector<int>& depth_type) {model_.set_pred_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
   
       // getters: output management
-      DVector<double> get_density_vector(){ return model_.get_density_vector(); }
+      DVector<double> density_vector(){ return model_.density_vector(); }
       DMatrix<double> ifd_fit(){ return model_.IFD_fit(); }
       DMatrix<double> ifd_pred(){ return model_.IFD_pred(); }
+      DVector<double> mhypo_fit(){ return model_.mhypo_fit(); }
+      DVector<double> mepi_fit(){ return model_.mepi_fit(); }
+      DVector<double> mhypo_pred(){ return model_.mhypo_pred(); }
+      DVector<double> mepi_pred(){ return model_.mepi_pred(); }
+      
+      DMatrix<double> medians(){ return model_.medians();} 			
+      DMatrix<bool> medians_NA(){ return model_.medians_NA(); } 		
+      DMatrix<double> first_quartile(){ return model_.first_quartile(); }
+      DMatrix<double> third_quartile(){ return model_.third_quartile(); } 		        
+      DMatrix<double> up_whisker(){ return model_.up_whisker(); }	        
+      DMatrix<double> low_whisker(){ return model_.low_whisker(); } 		        
+      DMatrix<bool> outliers(){ return model_.outliers(); } 
   
       // utilities
       void init() {
