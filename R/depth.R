@@ -32,14 +32,17 @@
       m <- ncol(domain$elements) - 1
       n <- ncol(domain$nodes)
       ## derive domain type
-      if (m == 1 && n == 2) {
-        # Deactivate due to Triangulation limitations # model_ <- new(cpp_network_depth, get_private(domain)$mesh_)
+      if (m == 1 && n == 1) {
+        # In future will be available, voronoi developed # private$model_ <- new(cpp_linear_depth, get_private(domain)$mesh_)
+      } else if (m == 1 && n == 2) {
+        # Deactivate due to Triangulation limitations # private$model_ <- new(cpp_network_depth, get_private(domain)$mesh_)
       } else if (m == 2 && n == 2) {
         private$model_ <- new(cpp_2d_depth, get_private(domain)$mesh_)
       } else if (m == 2 && n == 3) {
-        # Deactivate due to Triangulation limitations # model_ <- new(cpp_surface_depth, get_private(domain)$mesh_)
+        # Deactivate due to Triangulation limitations # private$model_ <- new(cpp_surface_depth, get_private(domain)$mesh_)
       } else if (m == 3 && n == 3) {
-        # Deactivate due to Triangulation limitations # model_ <- new(cpp_3d_depth, get_private(domain)$mesh_)
+        # Under test
+        private$model_ <- new(cpp_3d_depth, get_private(domain)$mesh_)
       } else {
         stop("wrong input argument provided.")
       }
