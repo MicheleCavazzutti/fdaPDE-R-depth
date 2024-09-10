@@ -22,4 +22,4 @@ Rcpp::loadModule("cpp_gsrpde_space", TRUE)
 #Rcpp::loadModule("cpp_network_depth",  TRUE) # At the moment Triangulation::Voronoi is available only for 2D domains
 Rcpp::loadModule("cpp_2d_depth",       TRUE)
 #Rcpp::loadModule("cpp_surface_depth",  TRUE)
-#Rcpp::loadModule("cpp_3d_depth",       TRUE)
+Rcpp::loadModule("cpp_3d_depth",       TRUE)
