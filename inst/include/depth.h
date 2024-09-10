@@ -58,6 +58,7 @@ namespace fdapde {
       {model_.set_train_functions(f_data);
 	model_.set_train_NA_matrix(f_data_mask);} // NBB substitute the "FUNCTIONAL_DATA" with an appropriate flag in the Cpp part.
       void set_phi_function_evaluation(const DVector<double>& phi_function_evaluation) { model_.set_phi_function_evaluation(phi_function_evaluation); } // Evaluated phi matrix in R
+      void set_phi_function_evaluation(const DVector<double>& external_voronoi_measures) { model_.set_external_voronoi_measures(external_voronoi_measures); } // Just for spheres
   
       // getters: output management
       DVector<double> density_vector(){ return model_.density_vector(); }

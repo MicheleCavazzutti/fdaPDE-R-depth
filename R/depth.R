@@ -26,7 +26,7 @@
     MHRD_pred_computed_ = FALSE # This flag is need to understand whether the MHRD for pred is computed or not. In the latter case, mepi and mhypo are not available
   ),
   public = list(
-    initialize = function(domain, f_data, f_data_mask, locations, depth_types, phi_function) { 
+    initialize = function(domain, f_data, f_data_mask, locations, depth_types, phi_function, external_measures_vector) { 
       ### Define the C++ model
       ## extract local and embedding dimensions
       m <- ncol(domain$elements) - 1
@@ -39,7 +39,7 @@
       } else if (m == 2 && n == 2) {
         private$model_ <- new(cpp_2d_depth, get_private(domain)$mesh_)
       } else if (m == 2 && n == 3) {
-        # Deactivate due to Triangulation limitations # private$model_ <- new(cpp_surface_depth, get_private(domain)$mesh_)
+        private$model_ <- new(cpp_surface_depth, get_private(domain)$mesh_) # Remark: this kind of depth works only if the voronoi measures of the cells are provided extrernally
       } else if (m == 3 && n == 3) {
         # Under test
         private$model_ <- new(cpp_3d_depth, get_private(domain)$mesh_)
@@ -71,6 +71,10 @@
       private$model_$set_functional_data(f_data,f_data_mask) # f_data is a matrix of dimension n_stat_units x n_loc
       private$model_$set_locations(locations) # In the future will contain the union of the set of all the locations
       private$model_$set_depth_types(depth_types_num)
+      
+      # Just for 2.5D spheres
+      if (m == 2 && n == 3){ if(length(external_measures_vector) == 1){stop("You need to provide external measures in 2.5D case")}}
+      private$model_$set_external_voronoi_measures(external_measures_vector) # Has meaning only in the case of 2.5D 
       
       # Set the C++ model and the phi_function to be evaluates
       private$phi_function_ = phi_function
@@ -250,7 +254,7 @@
  
 # Public interface
 #' @export
-Depth <- function(f_data, locations, domain, depth_types, phi_function = NULL){
+Depth <- function(f_data, locations, domain, depth_types, phi_function = NULL, external_measures_vector = NULL){
   ### Here I need to treat the model I have (defined in a separate file) and to fill all the things that will be needed
   ### I have two cases: 1 data is a list of functions-locations couple, possibly missing
   ###                   2 data is a matrix of functions with locations separately, eventually missing
@@ -269,7 +273,12 @@ Depth <- function(f_data, locations, domain, depth_types, phi_function = NULL){
     warning("The phi function should be a positive function \n")
   }
   
+  # Just for spheres in 2.5D
+  if(is.null(external_measures_vector)){
+    external_measures_vector <- as.numeric(rep(0,1))} # Default useless external measure vector
+  }
+  
   # Build the R class, return it
-  model = .DepthModel$new(domain, f_data, f_data_mask, locations, depth_types, phi_function)
+  model = .DepthModel$new(domain, f_data, f_data_mask, locations, depth_types, phi_function, external_measures_vector)
   return(model)
 }
