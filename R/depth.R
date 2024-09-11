@@ -275,7 +275,7 @@ Depth <- function(f_data, locations, domain, depth_types, phi_function = NULL, e
   
   # Just for spheres in 2.5D
   if(is.null(external_measures_vector)){
-    external_measures_vector <- as.numeric(rep(0,1))} # Default useless external measure vector
+    external_measures_vector <- as.numeric(rep(0,1)) # Default useless external measure vector
   }
   
   # Build the R class, return it
