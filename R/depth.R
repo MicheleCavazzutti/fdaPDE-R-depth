@@ -68,7 +68,7 @@
       }
       
       ### Set the data inside the C++ model
-      private$model_$set_functional_data(f_data,f_data_mask) # f_data is a matrix of dimension n_stat_units x n_loc
+      private$model_$set_functional_data(rbind(f_data),rbind(f_data_mask)) # f_data is a matrix of dimension n_stat_units x n_loc
       private$model_$set_locations(locations) # In the future will contain the union of the set of all the locations
       private$model_$set_depth_types(depth_types_num)
       
@@ -128,9 +128,9 @@
       }
       
       # Set the depth types for prediction
-      private$model_$set_pred_depth_types(depth_types)
+      private$model_$set_pred_depth_types(depth_types_num)
       
-      private$model_$predict(f_pred, f_pred_mask)
+      private$model_$predict(rbind(f_pred), rbind(f_pred_mask))
       
       # Set the proper flag
       private$predicted_ = TRUE

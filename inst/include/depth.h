@@ -83,7 +83,7 @@ namespace fdapde {
       }
       void solve() { model_.solve(); } // This part will solve the model, computing the reciprocal depths.
   
-      void predict(const DMatrix<double> & pred_data, DMatrix<bool> & pred_mask) {
+      void predict(const DMatrix<double> & pred_data, const DMatrix<bool> & pred_mask) {
 	model_.set_pred_functions(pred_data);
 	model_.set_pred_NA_matrix(pred_mask);
   
