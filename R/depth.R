@@ -206,7 +206,7 @@
       medians = private$model_$medians()
       medians_mask = private$model_$medians_NA()
       
-      medians[medians_mask]<-rep(NA,medians_mask) # Put to NA the missing values of the original functions
+      medians[medians_mask]<-rep(NA,length(medians_mask)) # Put to NA the missing values of the original functions
       
       return(medians)
     }, # Median, available after computation

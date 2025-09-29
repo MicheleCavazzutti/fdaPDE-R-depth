@@ -14,10 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef __FDAPDE_R_SYMBOLS_INCLUDE__
-#define __FDAPDE_R_SYMBOLS_INCLUDE__
+#ifndef __R_SR_H__
+#define __R_SR_H__
 
-// make fdaPDE visibile to Rcpp
-#include <fdaPDE/models.h>
+#include <RcppEigen.h>
+// [[Rcpp::depends(RcppEigen)]]
 
-#endif // __FDAPDE_R_SYMBOLS_INCLUDE__
+#include "fe_ls_elliptic.h"
+
+namespace fdapde {
+namespace r {
+
+template <int LocalDim, int EmbedDim>
+class sr_elliptic : public fe_ls_elliptic<LocalDim, EmbedDim, fdapde::SRPDE<internals::fe_ls_elliptic>> {
+    using Base = fe_ls_elliptic<LocalDim, EmbedDim, fdapde::SRPDE<internals::fe_ls_elliptic>>;
+   public:
+    sr_elliptic() noexcept = default;
+    sr_elliptic(
+      const std::string& formula, const Rcpp::Environment& geoframe, const Rcpp::Nullable<Rcpp::List>& penalty) :
+        Base(formula, geoframe, penalty) { }
+};
+
+}   // namespace r
+}   // namespace fdapde
+
+#endif   // __R_SR_H__

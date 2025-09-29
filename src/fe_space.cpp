@@ -14,10 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef __FDAPDE_R_SYMBOLS_INCLUDE__
-#define __FDAPDE_R_SYMBOLS_INCLUDE__
+#include <RcppEigen.h>
+// [[Rcpp::depends(RcppEigen)]]
+#include "../inst/include/fe_space.h"
 
-// make fdaPDE visibile to Rcpp
-#include <fdaPDE/models.h>
+namespace fdapde {
+namespace r {
 
-#endif // __FDAPDE_R_SYMBOLS_INCLUDE__
+// clang-format off
+    
+using fe_space_2_2_p1 = FeSpace<2, 2, FeP<1, 1>>;
+RCPP_MODULE(cpp_fe_space_2_2_p1) {
+    Rcpp::class_<FeSpace<2, 2, FeP<1, 1>>>("cpp_fe_space_2_2_p1")
+      .constructor<Rcpp::Environment>()
+      .method("eval"        , &FeSpace<2, 2, FeP<1, 1>>::eval        )
+      .method("n_dofs"      , &FeSpace<2, 2, FeP<1, 1>>::n_dofs      )
+      .method("n_quad_nodes", &FeSpace<2, 2, FeP<1, 1>>::n_quad_nodes)
+      .method("quad_nodes"  , &FeSpace<2, 2, FeP<1, 1>>::quad_nodes  );
+}
+    
+// clang-format on
+
+}   // namespace r
+}   // namespace fdapde
