@@ -59,13 +59,13 @@ template <int LocalDim, int EmbedDim> class de_elliptic {
             FeCoeff<local_dim, 1, 1, vector_t> u(Rcpp::as<matrix_t>(ls["u"]));
             auto F = integral(D)(u * v);
 
-            model_.discretize(gf, std::pair {a, F});
+            model_.discretize(fe_de_elliptic(a, F).get());
         } else {   // fallback to isotropic laplacian penalty
             auto a = integral(D)(dot(grad(f), grad(v)));
             ScalarField<local_dim, decltype([](const vector_t&) { return 0; })> u;
             auto F = integral(D)(u * v);
 	    
-            model_.discretize(gf, std::pair {a, F});
+            model_.discretize(fe_de_elliptic(a, F).get());
         }
 	model_.analyze_data(gf);
     }
