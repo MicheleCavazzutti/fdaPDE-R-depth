@@ -26,23 +26,24 @@
     MHRD_pred_computed_ = FALSE # This flag is need to understand whether the MHRD for pred is computed or not. In the latter case, mepi and mhypo are not available
   ),
   public = list(
-    initialize = function(domain, f_data, f_data_mask, locations, depth_types, phi_function) { 
+    initialize = function(data, f_data, f_data_mask, locations, depth_types, phi_function) { 
       ### Define the C++ model
       ## extract local and embedding dimensions
-      m <- ncol(domain$elements) - 1
+      domain <- gf$geometry
+      m <- ncol(domain$cells) - 1
       n <- ncol(domain$nodes)
       ## derive domain type
       if (m == 1 && n == 1) {
-        # In future will be available, voronoi developed # private$model_ <- new(cpp_linear_depth, get_private(domain)$mesh_)
+        # In future will be available, voronoi developed # private$model_ <- new(cpp_linear_depth, get_private(data$gf__ptr__)$ptr_)
       } else if (m == 1 && n == 2) {
-        # Deactivate due to Triangulation limitations # private$model_ <- new(cpp_network_depth, get_private(domain)$mesh_)
+        # Deactivate due to Triangulation limitations # private$model_ <- new(cpp_network_depth, get_private(data$gf__ptr__)$ptr_)
       } else if (m == 2 && n == 2) {
-        private$model_ <- new(cpp_2d_depth, get_private(domain)$mesh_)
+        private$model_ <- new(cpp_2d_depth, get_private(data$gf__ptr__)$ptr_)
       } else if (m == 2 && n == 3) {
-        # Deactivate due to Triangulation limitations # private$model_ <- new(cpp_surface_depth, get_private(domain)$mesh_)
+        # Deactivate due to Triangulation limitations # private$model_ <- new(cpp_surface_depth, get_private(data$gf__ptr__)$ptr_)
       } else if (m == 3 && n == 3) {
         # Under test
-        private$model_ <- new(cpp_3d_depth, get_private(domain)$mesh_)
+        # Deactivated due to Triangulation limitations  # private$model_ <- new(cpp_3d_depth, get_private(data$gf__ptr__)$ptr_)
       } else {
         stop("wrong input argument provided.")
       }
@@ -250,7 +251,7 @@
  
 # Public interface
 #' @export
-Depth <- function(f_data, locations, domain, depth_types, phi_function = NULL){
+Depth <- function(f_data, locations, geoframe, depth_types, phi_function = NULL){
   ### Here I need to treat the model I have (defined in a separate file) and to fill all the things that will be needed
   ### I have two cases: 1 data is a list of functions-locations couple, possibly missing
   ###                   2 data is a matrix of functions with locations separately, eventually missing
@@ -270,6 +271,6 @@ Depth <- function(f_data, locations, domain, depth_types, phi_function = NULL){
   }
   
   # Build the R class, return it
-  model = .DepthModel$new(domain, f_data, f_data_mask, locations, depth_types, phi_function)
+  model = .DepthModel$new(geoframe, f_data, f_data_mask, locations, depth_types, phi_function)
   return(model)
 }

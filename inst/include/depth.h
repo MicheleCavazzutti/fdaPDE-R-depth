@@ -23,27 +23,28 @@
 using fdapde::models::DEPTH;
 
 #include "mesh.h"
+#include "utility.h"
 using fdapde::Triangulation;
 
 namespace fdapde {
   namespace r {
 
-    template <int M, int N> class R_DEPTH { // M and N need to be specified in instantiation before
+    template <int LocalDim, int EmbedDim> class R_DEPTH { // M and N need to be specified in instantiation before
     private:
-      using DomainType = fdapde::Triangulation<M, N>;
+      using Triangulation = fdapde::Triangulation<LocalDim, EmbedDim>;
+      using GeoFrame = fdapde::GeoFrame<Triangulation>;
   
-      DomainType domain_ {};           // triangulation
-      DEPTH<DomainType> model_; // statistical model to wrap
+      Triangulation domain_ {};           // triangulation
+      DEPTH<Triangulation> model_; // statistical model to wrap
     public:
-      R_DEPTH(Rcpp::Environment mesh) {
+      R_DEPTH(const Rcpp::Environment& geoframe) {
 	// set domain
-	using RDomainType = r::Triangulation<DomainType::local_dim, DomainType::embed_dim>;
-	SEXP meshptr = mesh[".pointer"];
-	RDomainType* ptr = reinterpret_cast<RDomainType*>(R_ExternalPtrAddr(meshptr));
-	domain_ = ptr->domain();
+	const GeoFrame& gf = get_env_as<GeoFrame>(geoframe);
+        const Triangulation& D = get_env_as<GeoFrame>(geoframe).template triangulation<0>();
+	domain_ = D;
     
 	// set model instance
-	model_ = DEPTH<DomainType>(domain_); // to be harmonized with the construCtor of the class that will compute the depths, called DEPTH
+	model_ = DEPTH<Triangulation>(domain_); // to be harmonized with the construCtor of the class that will compute the depths, called DEPTH
       }
   
       // setters
@@ -51,7 +52,7 @@ namespace fdapde {
       void set_locations(const Eigen::Matrix<double, Dynamic, Dynamic>& locations) {model_.set_locations(locations);} // NBB check that the locations cannot be directly put inside mesh
       void set_depth_types(const Eigen::Matrix<int, Dynamic, 1>& depth_type) {model_.set_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
       void set_pred_depth_types(const Eigen::Matrix<int, Dynamic, 1>& depth_type) {model_.set_pred_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
-      void set_functional_data(const Eigen::Matrix<double, Dynamic, Dynamic>& f_data, const Eigen::Matrix<double, Dynamic, Dynamic>& f_data_mask) 
+      void set_functional_data(const Eigen::Matrix<double, Dynamic, Dynamic>& f_data, const Eigen::Matrix<bool, Dynamic, Dynamic>& f_data_mask) 
       {model_.set_train_functions(f_data);
 	model_.set_train_NA_matrix(f_data_mask);} // NBB substitute the "FUNCTIONAL_DATA" with an appropriate flag in the Cpp part.
       void set_phi_function_evaluation(const Eigen::Matrix<double, Dynamic, 1>& phi_function_evaluation) { model_.set_phi_function_evaluation(phi_function_evaluation); } // Evaluated phi matrix in R
@@ -66,12 +67,12 @@ namespace fdapde {
       Eigen::Matrix<double, Dynamic, 1> mepi_pred(){ return model_.mepi_pred(); }
       
       Eigen::Matrix<double, Dynamic, Dynamic> medians(){ return model_.medians();} 			
-      Eigen::Matrix<double, Dynamic, Dynamic> medians_NA(){ return model_.medians_NA(); } 		
+      Eigen::Matrix<bool, Dynamic, Dynamic> medians_NA(){ return model_.medians_NA(); } 		
       Eigen::Matrix<double, Dynamic, Dynamic> first_quartile(){ return model_.first_quartile(); }
       Eigen::Matrix<double, Dynamic, Dynamic> third_quartile(){ return model_.third_quartile(); } 		        
       Eigen::Matrix<double, Dynamic, Dynamic> up_whisker(){ return model_.up_whisker(); }	        
       Eigen::Matrix<double, Dynamic, Dynamic> low_whisker(){ return model_.low_whisker(); } 		        
-      Eigen::Matrix<double, Dynamic, Dynamic> outliers(){ return model_.outliers(); } 
+      Eigen::Matrix<bool, Dynamic, Dynamic> outliers(){ return model_.outliers(); } 
   
       // utilities
       void init() {
@@ -80,7 +81,7 @@ namespace fdapde {
       }
       void solve() { model_.solve(); } // This part will solve the model, computing the reciprocal depths.
   
-      void predict(const Eigen::Matrix<double, Dynamic, Dynamic> & pred_data, const Eigen::Matrix<double, Dynamic, Dynamic> & pred_mask) {
+      void predict(const Eigen::Matrix<double, Dynamic, Dynamic> & pred_data, const Eigen::Matrix<bool, Dynamic, Dynamic> & pred_mask) {
 	model_.set_pred_functions(pred_data);
 	model_.set_pred_NA_matrix(pred_mask);
   
