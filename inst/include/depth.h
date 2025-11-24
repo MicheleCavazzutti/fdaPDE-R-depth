@@ -51,19 +51,54 @@ namespace fdapde {
   
       // setters
       // Here I will have the setters for the data internal to the C++ class that will compute depth. First I need to construct it, and then to harmonize it
-      void set_locations(const DMatrix<double>& locations) {model_.set_locations(locations);} // NBB check that the locations cannot be directly put inside mesh
+      void set_locations(const Rcpp::List & locations_list){ // Note: now I am importing a list of matrices, that I want to transform into a vector of matrices
+	std::vector<DMatrix<double>> locations_vector_list;
+	locations_vector_list.reserve(locations_list.size());
+	for (int i = 0; i < locations_list.size(); ++i){
+	  Rcpp::NumericMatrix mat = locations_list[i];
+	  int nr = mat.nrow(); int nc = mat.ncol();
+	  DMatrix<double> dm(nr, nc);
+	  for (int r = 0; r < nr; ++r)
+            for (int c = 0; c < nc; ++c)
+	      dm(r, c) = mat(r, c);
+
+	  locations_vector_list.push_back(std::move(dm));
+        }
+	model_.set_locations(locations_vector_list);
+      }
       void set_depth_types(const DVector<int>& depth_type) {model_.set_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
       void set_pred_depth_types(const DVector<int>& depth_type) {model_.set_pred_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
-      void set_functional_data(const DMatrix<double>& f_data, const DMatrix<bool>& f_data_mask) 
-      {model_.set_train_functions(f_data);
-	model_.set_train_NA_matrix(f_data_mask);} // NBB substitute the "FUNCTIONAL_DATA" with an appropriate flag in the Cpp part.
+      void set_functional_data(const Rcpp::List & f_data_list, const Rcpp::List & f_mask_list){ // Note: now I am importing lists of vectors from R
+        std::vector<DVector<double>> f_data;
+        std::vector<DVector<bool>> f_mask;
+        f_data.reserve(f_data_list.size());
+        f_mask.reserve(f_mask_list.size());
+        for (int i = 0; i < f_data_list.size() && i < f_mask_list.size(); ++i){
+	  Rcpp::NumericVector v = f_data_list[i];
+	  Rcpp::LogicalVector v_m = f_mask_list[i];
+	  int n = v.size();
+	  DVector<double> dv(n);   // create vector of same size
+	  DVector<bool> dv_m(n);
+	  for (int j = 0; j < n; ++j)
+	    {
+	      dv(j) = v[j];
+	      dv_m(j) = (v_m[j] == TRUE);   // convert R logical to bool
+	    }
+	  f_data.push_back(std::move(dv));
+	  f_mask.push_back(std::move(dv_m));
+        }
+        model_.set_train_functions(f_data);
+	model_.set_train_NA_matrix(f_mask);
+      } 
       void set_phi_function_evaluation(const DVector<double>& phi_function_evaluation) { model_.set_phi_function_evaluation(phi_function_evaluation); } // Evaluated phi matrix in R
       void set_external_voronoi_measures(const DVector<double>& external_voronoi_measures) { model_.set_external_voronoi_measures(external_voronoi_measures); } // Just for spheres
+      void set_int_method(int int_method) { model_.set_int_method(int_method); } // Type of integral discretization used
   
       // getters: output management
       DVector<double> density_vector(){ return model_.density_vector(); }
       DMatrix<double> ifd_fit(){ return model_.IFD_fit(); }
       DMatrix<double> ifd_pred(){ return model_.IFD_pred(); }
+      int int_method(){ return model_.int_method(); }
       DVector<double> mhypo_fit(){ return model_.mhypo_fit(); }
       DVector<double> mepi_fit(){ return model_.mepi_fit(); }
       DVector<double> mhypo_pred(){ return model_.mhypo_pred(); }
@@ -75,7 +110,9 @@ namespace fdapde {
       DMatrix<double> third_quartile(){ return model_.third_quartile(); } 		        
       DMatrix<double> up_whisker(){ return model_.up_whisker(); }	        
       DMatrix<double> low_whisker(){ return model_.low_whisker(); } 		        
-      DMatrix<bool> outliers(){ return model_.outliers(); } 
+      DMatrix<bool> outliers(){ return model_.outliers(); }
+      DMatrix<double> f_fit(){ return model_.seed_based_r_fit(); }
+      DMatrix<double> f_pred(){ return model_.seed_based_r_pred(); } 
   
       // utilities
       void init() {
@@ -84,18 +121,52 @@ namespace fdapde {
       }
       void solve() { model_.solve(); } // This part will solve the model, computing the reciprocal depths.
   
-      void predict(const DMatrix<double> & pred_data, DMatrix<bool> & pred_mask) {
-	model_.set_pred_functions(pred_data);
-	model_.set_pred_NA_matrix(pred_mask);
-  
-	model_.predict(); 
-      } // This part computes the predicted IFD, MEI, ...
-  
-      // destructor
-      ~R_DEPTH() = default;
-    };
+      void predict(const Rcpp::List & pred_data_list, const Rcpp::List & pred_mask_list, const Rcpp::List & pred_locations_list {
+      
+	  // Prepare pred_data and pred mask
+	  std::vector<DVector<double>> pred_data;
+	  std::vector<DVector<bool>> pred_mask;
+	  pred_data.reserve(pred_data_list.size());
+	  pred_mask.reserve(pred_mask_list.size());
+	  for (int i = 0; i < pred_data_list.size() && i < pred_mask_list.size(); ++i){
+	    Rcpp::NumericVector v = pred_data_list[i];
+	    Rcpp::LogicalVector v_m = pred_mask_list[i];
+	    int n = v.size();
+	    DVector<double> dv(n);   // create vector of same size
+	    DVector<bool> dv_m(n);
+	    for (int j = 0; j < n; ++j)
+	      {
+		dv(j) = v[j];
+		dv_m(j) = (v_m[j] == TRUE);   // convert R logical to bool
+	      }
+	    pred_data.push_back(std::move(dv));
+	    pred_mask.push_back(std::move(dv_m));
+	  }
+        
+	  std::vector<DMatrix<double>> pred_locations;
+	  pred_locations.reserve(pred_locations_list.size());
+	  for (int i = 0; i < pred_locations_list.size(); ++i){
+	    Rcpp::NumericMatrix mat = pred_locations_list[i];
+	    int nr = mat.nrow(); int nc = mat.ncol();
+	    DMatrix<double> dm(nr, nc);
+	    for (int r = 0; r < nr; ++r)
+	      for (int c = 0; c < nc; ++c)
+                dm(r, c) = mat(r, c);
 
+	    pred_locations.push_back(std::move(dm));
+	  }
+	  model_.set_pred_functions(pred_data);
+	  model_.set_pred_NA_matrix(pred_mask);
+	  model_.set_pred_locations(pred_locations);
+  
+	  model_.predict(); 
+	} // This part computes the predicted IFD, MEI, ...
+  
+	// destructor
+	~R_DEPTH() = default;
+	};
+
+    }
   }
-}
 
 #endif // __R_DEPTH_H__

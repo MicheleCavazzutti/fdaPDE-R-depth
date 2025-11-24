@@ -26,7 +26,7 @@
     MHRD_pred_computed_ = FALSE # This flag is need to understand whether the MHRD for pred is computed or not. In the latter case, mepi and mhypo are not available
   ),
   public = list(
-    initialize = function(domain, f_data, f_data_mask, locations, depth_types, phi_function, external_measures_vector) { 
+    initialize = function(domain, f_data_list, f_data_mask_list, locations_list, depth_types, int_method, phi_function, external_measures_vector) { 
       ### Define the C++ model
       ## extract local and embedding dimensions
       m <- ncol(domain$elements) - 1
@@ -67,10 +67,14 @@
         }
       }
       
+      ### Transform int_method in numeric value (0 --> "FEM-0", 1 --> "Voronoi")
+      int_method_num <- ifelse(int_method=="Voronoi",0,1)
+      
       ### Set the data inside the C++ model
-      private$model_$set_functional_data(f_data,f_data_mask) # f_data is a matrix of dimension n_stat_units x n_loc
-      private$model_$set_locations(locations) # In the future will contain the union of the set of all the locations
+      private$model_$set_functional_data(f_data_list,f_data_mask_list) # f_data is a matrix of dimension n_stat_units x n_loc
+      private$model_$set_locations(locations_list) # In the future will contain the union of the set of all the locations
       private$model_$set_depth_types(depth_types_num)
+      private$model_$set_int_method(int_method_num)
       
       # Just for 2.5D spheres
       if (m == 2 && n == 3){ if(length(external_measures_vector) == 1){stop("You need to provide external measures in 2.5D case")}}
@@ -101,15 +105,105 @@
       # Set the proper flag
       private$solved_ = TRUE
     },
-    predict = function(f_pred, depth_types){
+    predict = function(f_pred, locations_pred, depth_types){ ### Note to be modified accordingly. We need also a get_int_method to understand if the model is  integrated in the right way
       
       if(!private$solved_){
         stop("The model has not been solved - run solve()")
       }
       
-      # Prepare the matrices for prediction, in the same fashion of the fit data
-      f_pred_mask <- is.na(f_pred)
-      f_pred[f_pred_mask] <- rep(0,sum(f_pred_mask))
+      ### Get from model the type of integration used to check the parameters
+      int_method_num = private$model_$int_method() ### To be defined
+      
+      ### Note: here I am reporting a first kernel of checks for the imput parameters. In the future this checks will need to be expanded
+      ### Check that functional data are either matrix or list of vectors
+      if(!(is.matrix(f_pred) || (is.list(f_pred) && all(vapply(f_pred, is.numeric, TRUE))))){
+        stop("f_pred must be either a matrix or a list of numeric vectors.")
+      }
+      
+      if(!(is.null(locations_pred) ||  is.matrix(locations_pred) || (is.list(locations_pred) && all(vapply(locations_pred, is.matrix, TRUE))))){ 
+        # Note: I am exploiting the fact that if locations_pred is null I'm not evaluating the other terms
+        stop("locations_pred must be NULL, a matrix, or a list of matrices.")
+      }
+      
+      if(is.list(f_pred) && !is.list(locations_pred)){
+        stop("If f_data is a list of vectors, locations must be a list of matrices.")
+      }
+      if(is.list(locations_pred) && !is.list(locations_pred)){
+        stop("If locations is a list of matrices, f_pred must be a list of vectors.")
+      }
+      
+      if(is.list(f_pred) && is.list(locations_pred)){
+        if(length(f_pred) != length(locations_pred)){
+          stop("f_pred and locations_pred must have the same number of elements when both are lists.")
+        }
+        for(i in seq_along(f_pred)){
+          if(length(f_pred[[i]]) != nrow(locations_pred[[i]])){
+            stop(sprintf(
+              "Length mismatch: f_pred[[%d]] has length %d but locations_pred[[%d]] has %d rows.",
+              i, length(f_pred[[i]]), i, nrow(locations_pred[[i]])
+            ))
+          }
+        }
+      }
+      
+      if(int_method_num == 1 && is.null(locations_pred)){
+        stop("locations_pred must be provided (non-NULL) when int_method='Voronoi'.")
+      }
+      if(int_method_num == 0 && !is.null(locations_pred)){
+        stop("locations_pred must be NULL when int_method='FEM-0'.")
+      }
+      
+      if(is.matrix(f_pred) && is.matrix(locations_pred)){
+        if(ncol(f_pred) != nrow(locations_pred)){
+          stop(sprintf(
+            "Column mismatch: f_pred has %d columns but locations_pred has %d rows.",
+            ncol(f_pred), nrow(locations_pred)
+          ))
+        }
+      }
+      
+      ### f_pred representation: represent f_pred with two lists, where in the first we store the values and in the second the NA_Masks
+      if(is.matrix(f_pred)){
+        f_pred_list      <- vector("list", nrow(f_pred))
+        f_pred_mask_list <- vector("list", nrow(f_pred))
+        
+        for(i in 1:nrow(f_pred)){
+          f_i <- f_pred[i,]
+          mask_i <- is.na(f_i)
+          f_i[mask_i] <- rep(0,sum(mask_i))  # replace NA with 0
+          
+          f_pred_list[[i]]      <- f_i
+          f_pred_mask_list[[i]] <- mask_i
+        }
+      }else{
+        f_pred_list      <- vector("list", length(f_pred))
+        f_pred_mask_list <- vector("list", length(f_pred))
+        
+        for(i in 1:length(f_pred)){
+          f_i <- f_pred[[i]]
+          mask_i <- is.na(f_i)
+          f_i[mask_i] <- rep(0,sum(mask_i))
+          
+          f_pred_list[[i]]      <- f_i
+          f_pred_mask_list[[i]] <- mask_i
+        }
+      }
+      
+      ### Transform locations_pred into the standard list representation. If only one element is in the list, we need to compute Voronoi areas just once (if needed)
+      if(is.null(locations_pred)){
+        ### Locations is just a list with one element, the mesh nodes
+        if(is.null(domain$nodes) || !is.matrix(domain$nodes)){
+          stop("domain$nodes must be a matrix when locations_pred is NULL.")
+        }
+        locations_list <- list(domain$nodes)
+      } else if(is.matrix(locations_pred)){
+        ### Locations is just a list with one element, the original locations_pred
+        locations_list <- list(locations_pred)
+      } else if(is.list(locations_pred)){
+        locations_list <- locations_pred
+      } else {
+        stop("locations_pred must be NULL, a matrix, or a list of matrices.")
+      }
       
       ### Transform depth_types into a numeric type
       depth_types_num = NULL
@@ -134,7 +228,7 @@
       # Set the depth types for prediction
       private$model_$set_pred_depth_types(depth_types)
       
-      private$model_$predict(f_pred, f_pred_mask)
+      private$model_$predict(f_pred_list, f_pred_mask_list, locations_list)
       
       # Set the proper flag
       private$predicted_ = TRUE
@@ -157,6 +251,22 @@
       
       # For the moment, the output just contains the evaluation of the IFD of fit functions
       return(private$model_$ifd_pred())
+    },
+    f_fit_representaiton = function(){ 
+      if(!private$solved_){
+        stop("The model has not been solved - run solve()")
+      }
+      
+      # For the moment, the output just contains the evaluation of the IFD of fit functions
+      return(private$model_$f_fit())
+    },
+    f_pred_representaiton = function(){ 
+      if(!private$predicted_){
+        stop("No predicted depeths available - run predict(...)")
+      }
+      
+      # For the moment, the output just contains the evaluation of the IFD of fit functions
+      return(private$model_$f_pred())
     },
     mhypo_fit = function() { 
       if(!private$solved_){
@@ -254,16 +364,114 @@
  
 # Public interface
 #' @export
-Depth <- function(f_data, locations, domain, depth_types, phi_function = NULL, external_measures_vector = NULL){
-  ### Here I need to treat the model I have (defined in a separate file) and to fill all the things that will be needed
-  ### I have two cases: 1 data is a list of functions-locations couple, possibly missing
-  ###                   2 data is a matrix of functions with locations separately, eventually missing
-  ### For the moment I implement only the version with common locations, just to make it easy
-  ### Evaluate the weights somehow on nodes (if possible, otherwise demand to C++, or default)
+Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'Voronoi', phi_function = NULL, external_measures_vector = NULL){
+  ### Description of the inputs:
+  ### - f_data: evaluations of the functional data in the locations. Can be two things: a matrix (in case only one set of locations is available
+  ### or locations is NULL, that is FEM case) or a list() of vectors (in the case one wants to specify different locations for each functional datum
+  ### available only in the Voronoi case)
+  ### - locations: set of locations for the functional data. May be NULL (in this case the locations coincide with mesh nodes), 
+  ### may be a single matrix (available only in the case of Voronoi, than all the functional data need to have the same length),
+  ### may be a list of matrices (one for each functional datum, need to have the same length)
+  ### - domain: mesh representing the problem
+  ### - depth_types: a vector specifying the types of depths one wants to compute on the provided data. Note that computing different depths essentially does not bring overhead.
+  ### - int_method: can take value "Voronoi" or "FEM-0", indicated the type of integration one wants to perform
+  ### - phi_function: type of weight function one would like to use in the depth integral weight
+  ### - external_measures_vector: vector of length (number of nodes) that is reporting the Voronoi areas associated to the mesh nodes. Needed only in Voronoi integration and 2.5/3 dimensional problems.
   
-  # Transform the matrix with NA into a dense full matrix, with NA mask
-  f_data_mask <- is.na(f_data)
-  f_data[f_data_mask] <- rep(0,sum(f_data_mask))
+  ### Note: here I am reporting a first kernel of checks for the imput parameters. In the future this checks will need to be expanded
+  ### Check that functional data are either matrix or list of vectors
+  if(!(is.matrix(f_data) || (is.list(f_data) && all(vapply(f_data, is.numeric, TRUE))))){
+    stop("f_data must be either a matrix or a list of numeric vectors.")
+  }
+  
+  if(!(is.null(locations) ||  is.matrix(locations) || (is.list(locations) && all(vapply(locations, is.matrix, TRUE))))){ 
+    # Note: I am exploiting the fact that if locations is null I'm not evaluating the other terms
+    stop("locations must be NULL, a matrix, or a list of matrices.")
+  }
+
+  if(!(int_method %in% c("Voronoi", "FEM-0"))){
+    stop('int_method must be either "Voronoi" or "FEM-0".')
+  }
+  
+  if(is.list(f_data) && !is.list(locations)){
+    stop("If f_data is a list of vectors, locations must be a list of matrices.")
+  }
+  if(is.list(locations) && !is.list(locations)){
+    stop("If locations is a list of matrices, f_data must be a list of vectors.")
+  }
+  
+  if(is.list(f_data) && is.list(locations)){
+    if(length(f_data) != length(locations)){
+      stop("f_data and locations must have the same number of elements when both are lists.")
+    }
+    for(i in seq_along(f_data)){
+      if(length(f_data[[i]]) != nrow(locations[[i]])){
+        stop(sprintf(
+          "Length mismatch: f_data[[%d]] has length %d but locations[[%d]] has %d rows.",
+          i, length(f_data[[i]]), i, nrow(locations[[i]])
+        ))
+      }
+    }
+  }
+  
+  if(int_method == "Voronoi" && is.null(locations)){
+    stop("locations must be provided (non-NULL) when int_method='Voronoi'.")
+  }
+  if(int_method == "FEM-0" && !is.null(locations)){
+    stop("locations must be NULL when int_method='FEM-0'.")
+  }
+  
+  if(is.matrix(f_data) && is.matrix(locations)){
+    if(ncol(f_data) != nrow(locations)){
+      stop(sprintf(
+        "Column mismatch: f_data has %d columns but locations has %d rows.",
+        ncol(f_data), nrow(locations)
+      ))
+    }
+  }
+  
+  ### f_data representation: represent f_data with two lists, where in the first we store the values and in the second the NA_Masks
+  if(is.matrix(f_data)){
+    f_data_list      <- vector("list", nrow(f_data))
+    f_data_mask_list <- vector("list", nrow(f_data))
+    
+    for(i in 1:nrow(f_data)){
+      f_i <- f_data[i,]
+      mask_i <- is.na(f_i)
+      f_i[mask_i] <- rep(0,sum(mask_i))  # replace NA with 0
+      
+      f_data_list[[i]]      <- f_i
+      f_data_mask_list[[i]] <- mask_i
+    }
+  }else{
+    f_data_list      <- vector("list", length(f_data))
+    f_data_mask_list <- vector("list", length(f_data))
+    
+    for(i in 1:length(f_data)){
+      f_i <- f_data[[i]]
+      mask_i <- is.na(f_i)
+      f_i[mask_i] <- rep(0,sum(mask_i))
+      
+      f_data_list[[i]]      <- f_i
+      f_data_mask_list[[i]] <- mask_i
+    }
+  }
+  
+  ### Transform locations into the standard list representation. If only one element is in the list, we need to compute Voronoi areas just once (if needed)
+  if(is.null(locations)){
+    ### Locations is just a list with one element, the mesh nodes
+    if(is.null(domain$nodes) || !is.matrix(domain$nodes)){
+      stop("domain$nodes must be a matrix when locations is NULL.")
+    }
+    locations_list <- list(domain$nodes)
+  } else if(is.matrix(locations)){
+    ### Locations is just a list with one element, the original locations
+    locations_list <- list(locations)
+  } else if(is.list(locations)){
+    locations_list <- locations
+  } else {
+    stop("locations must be NULL, a matrix, or a list of matrices.")
+  }
   
   # This function will be used after the model has been initialized
   # phi_function # functional object: needs to be a positive integrable function on Omega
@@ -279,6 +487,6 @@ Depth <- function(f_data, locations, domain, depth_types, phi_function = NULL, e
   }
   
   # Build the R class, return it
-  model = .DepthModel$new(domain, f_data, f_data_mask, locations, depth_types, phi_function, external_measures_vector)
+  model = .DepthModel$new(domain, f_data_list, f_data_mask_list, locations_list, depth_types, int_method, phi_function, external_measures_vector)
   return(model)
 }
