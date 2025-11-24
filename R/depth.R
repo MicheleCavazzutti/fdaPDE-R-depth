@@ -76,8 +76,8 @@
       private$model_$set_depth_types(depth_types_num)
       private$model_$set_int_method(int_method_num)
       
-      # Just for 2.5D spheres
-      if (m == 2 && n == 3){ if(length(external_measures_vector) == 1){stop("You need to provide external measures in 2.5D case")}}
+      # Just for 2.5D and 3D cases
+      if ((m == 2 && n == 3) || (m==3 && n == 3)){ if(length(external_measures_vector) == 1){stop("You need to provide external measures in 2.5D and 3D cases")}}
       private$model_$set_external_voronoi_measures(external_measures_vector) # Has meaning only in the case of 2.5D 
       
       # Set the C++ model and the phi_function to be evaluates
@@ -481,7 +481,7 @@ Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'V
     warning("The phi function should be a positive function \n")
   }
   
-  # Just for spheres in 2.5D
+  # Just for 2.5D objects and 3D objects
   if(is.null(external_measures_vector)){
     external_measures_vector <- as.numeric(rep(0,1)) # Default useless external measure vector
   }
