@@ -20,7 +20,7 @@
     model_  = NULL, ## C++ model backend
     phi_function_ = NULL, ## This phi function will be used to compute the weight function, when needed. If left to NULL,the identity function will be employed
     initialized_ = FALSE, # Flag for model initialization
-    solved_ = FALSE, # Flag for IFD computation for fit function
+    solved_ = FALSE, # Flag for depth computation for fit functions
     predicted_ = FALSE, # Flag for IFD computation for pred function
     MHRD_fit_computed_ = FALSE, # This flag is need to understand whether the MHRD for fit is computed or not. In the latter case, mepi and mhypo are not available
     MHRD_pred_computed_ = FALSE # This flag is need to understand whether the MHRD for pred is computed or not. In the latter case, mepi and mhypo are not available
@@ -33,16 +33,15 @@
       n <- ncol(domain$nodes)
       ## derive domain type
       if (m == 1 && n == 1) {
-        # In future will be available, voronoi developed # private$model_ <- new(cpp_linear_depth, get_private(domain)$mesh_)
+        # Not available yet # private$model_ <- new(cpp_linear_depth, get_private(domain)$mesh_)
       } else if (m == 1 && n == 2) {
-        # Deactivate due to Triangulation limitations # private$model_ <- new(cpp_network_depth, get_private(domain)$mesh_)
+        # Not available yet # private$model_ <- new(cpp_network_depth, get_private(domain)$mesh_)
       } else if (m == 2 && n == 2) {
         private$model_ <- new(cpp_2d_depth, get_private(domain)$mesh_)
       } else if (m == 2 && n == 3) {
-        private$model_ <- new(cpp_surface_depth, get_private(domain)$mesh_) # Remark: this kind of depth works only if the voronoi measures of the cells are provided extrernally
+        private$model_ <- new(cpp_surface_depth, get_private(domain)$mesh_) # Remark: when Voronoi depth is required, external voronoi measures are ued in the integration
       } else if (m == 3 && n == 3) {
-        # Under test
-        private$model_ <- new(cpp_3d_depth, get_private(domain)$mesh_)
+        private$model_ <- new(cpp_3d_depth, get_private(domain)$mesh_) # Remark: when Voronoi depth is required, external voronoi measures are ued in the integration
       } else {
         stop("wrong input argument provided.")
       }
@@ -51,30 +50,30 @@
       depth_types_num = NULL
       for(i in 1:length(depth_types)){
         num=0
-        if(depth_types[i]=='MBD'){
+        if(depth_types[i]=='SD'){ ## Simplicial univariate depth, using the weight function phi 
           depth_types_num = c(depth_types_num,1) 
         }else{
-          if(depth_types[i]=='FMD'){
+          if(depth_types[i]=='FMD'){ ## Simplicial univariate depth, ignoring the wirhgt function phi
             depth_types_num = c(depth_types_num,2)
           }else{
-            if(depth_types[i]=='MHRD'){
+            if(depth_types[i]=='MHRD'){ ## Halfspace univariate depth, computing MHRD
               depth_types_num = c(depth_types_num,3)
               private$MHRD_fit_computed_ = TRUE
             }else{
-              stop("Depth type should be a vector containing strings among 'MBD', 'FMD', 'MHRD'" )
+              stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD'" )
             }
           }
         }
       }
       
       ### Transform int_method in numeric value (0 --> "FEM-0", 1 --> "Voronoi")
-      int_method_num <- ifelse(int_method=="Voronoi",0,1)
+      int_method_num <- ifelse(int_method=="Voronoi",-1,0)
       
       ### Set the data inside the C++ model
-      private$model_$set_functional_data(f_data_list,f_data_mask_list) # f_data is a matrix of dimension n_stat_units x n_loc
-      private$model_$set_locations(locations_list) # In the future will contain the union of the set of all the locations
-      private$model_$set_depth_types(depth_types_num)
-      private$model_$set_int_method(int_method_num)
+      private$model_$set_functional_data(f_data_list,f_data_mask_list) # f_data_list is a list of length n_train, where each element is a vector (possibly of different size). 
+      private$model_$set_locations(locations_list) # Two cases are possible here: either a list of length 1, containing a single matrix of locations common to every functional datum, or a list of length n_train, with a locations matrix for each functional datum
+      private$model_$set_depth_types(depth_types_num) # List of numbers indicating the depth types required
+      private$model_$set_int_method(int_method_num) # integer indicating the type of integration required. Currently can be of value -1 (Voronoi depth) or 0 (FEM-0 depth)
       
       # Just for 2.5D and 3D cases
       if ((m == 2 && n == 3) || (m==3 && n == 3)){ if(length(external_measures_vector) == 1){stop("You need to provide external measures in 2.5D and 3D cases")}}
@@ -84,8 +83,8 @@
       private$phi_function_ = phi_function
     },
     init = function(){
-      ### Initialization of the model: computing voronoi tessellation ad allowing for phi-function evaluation
-      private$model_$init() # Needed to pass the phi-function evaluation to C++ class.
+      ### Initialization of the model: set the data and compute the seed-based representation for the data (that is computing the Voronoi tessellation and computing the spatial averages in the Voronoi cell if Voronoi integration is required). 
+      private$model_$init()
       
       # We extract from C++ the coverage density Q(p) (probability of a function to be observed in a Voronoi cell)
       q_density_vector <- private$model_$density_vector() 
@@ -105,16 +104,15 @@
       # Set the proper flag
       private$solved_ = TRUE
     },
-    predict = function(f_pred, locations_pred, depth_types){ ### Note to be modified accordingly. We need also a get_int_method to understand if the model is  integrated in the right way
+    predict = function(f_pred, locations_pred, depth_types){ ## Similarly to the fit case, accepts a list of vectors (representing the pred functions) and the associated list of locations.
       
       if(!private$solved_){
         stop("The model has not been solved - run solve()")
       }
       
       ### Get from model the type of integration used to check the parameters
-      int_method_num = private$model_$int_method() ### To be defined
+      int_method_num = private$model_$int_method()
       
-      ### Note: here I am reporting a first kernel of checks for the imput parameters. In the future this checks will need to be expanded
       ### Check that functional data are either matrix or list of vectors
       if(!(is.matrix(f_pred) || (is.list(f_pred) && all(vapply(f_pred, is.numeric, TRUE))))){
         stop("f_pred must be either a matrix or a list of numeric vectors.")
@@ -126,7 +124,7 @@
       }
       
       if(is.list(f_pred) && !is.list(locations_pred)){
-        stop("If f_data is a list of vectors, locations must be a list of matrices.")
+        stop("If f_pred is a list of vectors, locations must be a list of matrices. If all the functions in f_pred share the same locations, store them in a matrix.")
       }
       if(is.list(locations_pred) && !is.list(locations_pred)){
         stop("If locations is a list of matrices, f_pred must be a list of vectors.")
@@ -146,7 +144,7 @@
         }
       }
       
-      if(int_method_num == 1 && is.null(locations_pred)){
+      if(int_method_num == -1 && is.null(locations_pred)){
         stop("locations_pred must be provided (non-NULL) when int_method='Voronoi'.")
       }
       if(int_method_num == 0 && !is.null(locations_pred)){
@@ -192,9 +190,6 @@
       ### Transform locations_pred into the standard list representation. If only one element is in the list, we need to compute Voronoi areas just once (if needed)
       if(is.null(locations_pred)){
         ### Locations is just a list with one element, the mesh nodes
-        if(is.null(domain$nodes) || !is.matrix(domain$nodes)){
-          stop("domain$nodes must be a matrix when locations_pred is NULL.")
-        }
         locations_list <- list(domain$nodes)
       } else if(is.matrix(locations_pred)){
         ### Locations is just a list with one element, the original locations_pred
@@ -209,7 +204,7 @@
       depth_types_num = NULL
       for(i in 1:length(depth_types)){
         num=0
-        if(depth_types[i]=='MBD'){
+        if(depth_types[i]=='SD'){
           depth_types_num = c(depth_types_num,1) 
         }else{
           if(depth_types[i]=='FMD'){
@@ -219,7 +214,7 @@
               depth_types_num = c(depth_types_num,3)
               private$MHRD_pred_computed_ = TRUE
             }else{
-              stop("Depth type should be a vector containing strings among 'MBD', 'FMD', 'MHRD'" )
+              stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD'" )
             }
           }
         }
@@ -257,16 +252,24 @@
         stop("The model has not been solved - run solve()")
       }
       
-      # For the moment, the output just contains the evaluation of the IFD of fit functions
-      return(private$model_$f_fit())
+      f_fit = private$model_$f_fit()
+      f_fit_mask = private$model_$f_fit_NA()
+      
+      f_fit[f_fit_mask]<-rep(NA,f_fit_mask) # Put to NA the missing values
+      
+      return(f_fit)
     },
     f_pred_representaiton = function(){ 
       if(!private$predicted_){
         stop("No predicted depeths available - run predict(...)")
       }
       
-      # For the moment, the output just contains the evaluation of the IFD of fit functions
-      return(private$model_$f_pred())
+      f_pred = private$model_$f_pred()
+      f_pred_mask = private$model_$f_pred_NA()
+      
+      f_pred[f_pred_mask]<-rep(NA,f_pred_mask) # Put to NA the missing values
+      
+      return(f_pred)
     },
     mhypo_fit = function() { 
       if(!private$solved_){
@@ -296,7 +299,7 @@
       }
       
       if(!private$MHRD_pred_computed_){
-        stop("Epigraph and Hypograph indexes are available only if MHRD has been computed for fit functions")
+        stop("Epigraph and Hypograph indexes are available only if MHRD has been computed for pred functions")
       }
       
       return(private$model_$mhypo_pred())
@@ -307,7 +310,7 @@
       }
       
       if(!private$MHRD_pred_computed_){
-        stop("Epigraph and Hypograph indexes are available only if MHRD has been computed for fit functions")
+        stop("Epigraph and Hypograph indexes are available only if MHRD has been computed for pred functions")
       }
       
       return(private$model_$mepi_pred()) 
@@ -329,28 +332,48 @@
         stop("The model has not been solved - run solve()")
       }
       
-      return(private$model_$first_quartile()) 
+      first_quartile = private$model_$first_quartile()
+      first_quartile_mask = private$model_$first_quartile_NA()
+      
+      first_quartile[first_quartile_mask]<-rep(NA,first_quartile_mask) # Put to NA the missing values
+
+      return(first_quartile) 
     }, # FirstQuartile, available after computation
     ThirdQuartile = function() { 
       if(!private$solved_){
         stop("The model has not been solved - run solve()")
       }
       
-    return(private$model_$third_quartile()) 
+      third_quartile = private$model_$third_quartile()
+      third_quartile_mask = private$model_$third_quartile_NA()
+      
+      third_quartile[third_quartile_mask]<-rep(NA,third_quartile_mask) # Put to NA the missing values
+      
+      return(third_quartile) 
     }, # ThirdQuartile, available after computation
     UpperFence = function() {
       if(!private$solved_){
         stop("The model has not been solved - run solve()")
       }
       
-    return(private$model_$up_whisker()) 
+      up_whisker = private$model_$up_whisker()
+      up_whisker_mask = private$model_$up_whisker_NA()
+      
+      up_whisker[up_whisker_mask]<-rep(NA,up_whisker_mask) # Put to NA the missing values
+      
+      return(up_whisker) 
     }, # UpperFence, available after computation
     LowerFence = function() {
       if(!private$solved_){
         stop("The model has not been solved - run solve()")
       }
       
-    return(private$model_$low_whisker()) 
+      low_whisker = private$model_$low_whisker()
+      low_whisker_mask = private$model_$low_whisker_NA()
+      
+      low_whisker[low_whisker_mask]<-rep(NA,low_whisker_mask) # Put to NA the missing values
+      
+      return(low_whisker) 
     }, # LowerFence, available after computation
     outliers = function() {
       if(!private$solved_){
@@ -378,7 +401,6 @@ Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'V
   ### - phi_function: type of weight function one would like to use in the depth integral weight
   ### - external_measures_vector: vector of length (number of nodes) that is reporting the Voronoi areas associated to the mesh nodes. Needed only in Voronoi integration and 2.5/3 dimensional problems.
   
-  ### Note: here I am reporting a first kernel of checks for the imput parameters. In the future this checks will need to be expanded
   ### Check that functional data are either matrix or list of vectors
   if(!(is.matrix(f_data) || (is.list(f_data) && all(vapply(f_data, is.numeric, TRUE))))){
     stop("f_data must be either a matrix or a list of numeric vectors.")

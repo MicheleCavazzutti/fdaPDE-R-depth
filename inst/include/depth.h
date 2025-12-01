@@ -107,12 +107,18 @@ namespace fdapde {
       DMatrix<double> medians(){ return model_.medians();} 			
       DMatrix<bool> medians_NA(){ return model_.medians_NA(); } 		
       DMatrix<double> first_quartile(){ return model_.first_quartile(); }
-      DMatrix<double> third_quartile(){ return model_.third_quartile(); } 		        
-      DMatrix<double> up_whisker(){ return model_.up_whisker(); }	        
-      DMatrix<double> low_whisker(){ return model_.low_whisker(); } 		        
+      DMatrix<bool> first_quartile_NA(){ return model_.first_quartile_NA(); }
+      DMatrix<double> third_quartile(){ return model_.third_quartile(); } 
+      DMatrix<bool> third_quartile_NA(){ return model_.third_quartile_NA(); } 		        
+      DMatrix<double> up_whisker(){ return model_.up_whisker(); }+
+      DMatrix<bool> up_whisker_NA(){ return model_.up_whisker_NA(); }	        
+      DMatrix<double> low_whisker(){ return model_.low_whisker(); } 
+      DMatrix<bool> low_whisker_NA(){ return model_.low_whisker_NA(); } 		        
       DMatrix<bool> outliers(){ return model_.outliers(); }
       DMatrix<double> f_fit(){ return model_.seed_based_r_fit(); }
+      DMatrix<bool> f_fit_NA(){ return model_.seed_based_r_fit_NA(); }
       DMatrix<double> f_pred(){ return model_.seed_based_r_pred(); } 
+      DMatrix<bool> f_pred_NA(){ return model_.seed_based_r_pred_NA(); } 
   
       // utilities
       void init() {
