@@ -88,7 +88,7 @@ namespace fdapde {
 	  f_mask.push_back(std::move(dv_m));
         }
         model_.set_train_functions(f_data);
-	model_.set_train_NA_matrix(f_mask);
+	model_.set_train_matrix_NA(f_mask);
       } 
       void set_phi_function_evaluation(const DVector<double>& phi_function_evaluation) { model_.set_phi_function_evaluation(phi_function_evaluation); } // Evaluated phi matrix in R
       void set_external_voronoi_measures(const DVector<double>& external_voronoi_measures) { model_.set_external_voronoi_measures(external_voronoi_measures); } // Just for spheres
@@ -110,7 +110,7 @@ namespace fdapde {
       DMatrix<bool> first_quartile_NA(){ return model_.first_quartile_NA(); }
       DMatrix<double> third_quartile(){ return model_.third_quartile(); } 
       DMatrix<bool> third_quartile_NA(){ return model_.third_quartile_NA(); } 		        
-      DMatrix<double> up_whisker(){ return model_.up_whisker(); }+
+      DMatrix<double> up_whisker(){ return model_.up_whisker(); }
       DMatrix<bool> up_whisker_NA(){ return model_.up_whisker_NA(); }	        
       DMatrix<double> low_whisker(){ return model_.low_whisker(); } 
       DMatrix<bool> low_whisker_NA(){ return model_.low_whisker_NA(); } 		        
@@ -127,7 +127,7 @@ namespace fdapde {
       }
       void solve() { model_.solve(); } // This part will solve the model, computing the reciprocal depths.
   
-      void predict(const Rcpp::List & pred_data_list, const Rcpp::List & pred_mask_list, const Rcpp::List & pred_locations_list {
+      void predict(const Rcpp::List & pred_data_list, const Rcpp::List & pred_mask_list, const Rcpp::List & pred_locations_list){
       
 	  // Prepare pred_data and pred mask
 	  std::vector<DVector<double>> pred_data;
@@ -162,7 +162,7 @@ namespace fdapde {
 	    pred_locations.push_back(std::move(dm));
 	  }
 	  model_.set_pred_functions(pred_data);
-	  model_.set_pred_NA_matrix(pred_mask);
+	  model_.set_pred_matrix_NA(pred_mask);
 	  model_.set_pred_locations(pred_locations);
   
 	  model_.predict(); 
