@@ -255,7 +255,7 @@
       f_fit = private$model_$f_fit()
       f_fit_mask = private$model_$f_fit_NA()
       
-      f_fit[f_fit_mask]<-rep(NA,f_fit_mask) # Put to NA the missing values
+      f_fit[f_fit_mask]<-rep(NA,sum(f_fit_mask)) # Put to NA the missing values
       
       return(f_fit)
     },
@@ -267,7 +267,7 @@
       f_pred = private$model_$f_pred()
       f_pred_mask = private$model_$f_pred_NA()
       
-      f_pred[f_pred_mask]<-rep(NA,f_pred_mask) # Put to NA the missing values
+      f_pred[f_pred_mask]<-rep(NA,sum(f_pred_mask)) # Put to NA the missing values
       
       return(f_pred)
     },
@@ -323,7 +323,7 @@
       medians = private$model_$medians()
       medians_mask = private$model_$medians_NA()
       
-      medians[medians_mask]<-rep(NA,medians_mask) # Put to NA the missing values of the original functions
+      medians[medians_mask]<-rep(NA,sum(medians_mask)) # Put to NA the missing values of the original functions
       
       return(medians)
     }, # Median, available after computation
@@ -335,7 +335,7 @@
       first_quartile = private$model_$first_quartile()
       first_quartile_mask = private$model_$first_quartile_NA()
       
-      first_quartile[first_quartile_mask]<-rep(NA,first_quartile_mask) # Put to NA the missing values
+      first_quartile[first_quartile_mask]<-rep(NA,sum(first_quartile_mask)) # Put to NA the missing values
 
       return(first_quartile) 
     }, # FirstQuartile, available after computation
@@ -347,7 +347,7 @@
       third_quartile = private$model_$third_quartile()
       third_quartile_mask = private$model_$third_quartile_NA()
       
-      third_quartile[third_quartile_mask]<-rep(NA,third_quartile_mask) # Put to NA the missing values
+      third_quartile[third_quartile_mask]<-rep(NA,sum(third_quartile_mask)) # Put to NA the missing values
       
       return(third_quartile) 
     }, # ThirdQuartile, available after computation
@@ -359,7 +359,7 @@
       up_whisker = private$model_$up_whisker()
       up_whisker_mask = private$model_$up_whisker_NA()
       
-      up_whisker[up_whisker_mask]<-rep(NA,up_whisker_mask) # Put to NA the missing values
+      up_whisker[up_whisker_mask]<-rep(NA,sum(up_whisker_mask)) # Put to NA the missing values
       
       return(up_whisker) 
     }, # UpperFence, available after computation
@@ -371,7 +371,7 @@
       low_whisker = private$model_$low_whisker()
       low_whisker_mask = private$model_$low_whisker_NA()
       
-      low_whisker[low_whisker_mask]<-rep(NA,low_whisker_mask) # Put to NA the missing values
+      low_whisker[low_whisker_mask]<-rep(NA,(low_whisker_mask)) # Put to NA the missing values
       
       return(low_whisker) 
     }, # LowerFence, available after computation
