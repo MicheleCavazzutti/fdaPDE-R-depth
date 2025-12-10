@@ -76,7 +76,7 @@
       private$model_$set_int_method(int_method_num) # integer indicating the type of integration required. Currently can be of value -1 (Voronoi depth) or 0 (FEM-0 depth)
       
       # Just for 2.5D and 3D cases
-      if ((m == 2 && n == 3) || (m==3 && n == 3)){ if(length(external_measures_vector) == 1){stop("You need to provide external measures in 2.5D and 3D cases")}}
+      if (((m == 2 && n == 3) || (m==3 && n == 3)) && (int_method_num == -1) ){ if(length(external_measures_vector) == 1){stop("You need to provide external measures in 2.5D and 3D cases, when Voronoi integration is required")}}
       private$model_$set_external_voronoi_measures(external_measures_vector) # Has meaning only in the case of 2.5D 
       
       # Set the C++ model and the phi_function to be evaluates
@@ -190,7 +190,7 @@
       ### Transform locations_pred into the standard list representation. If only one element is in the list, we need to compute Voronoi areas just once (if needed)
       if(is.null(locations_pred)){
         ### Locations is just a list with one element, the mesh nodes
-        locations_list <- list(domain$nodes)
+        locations_list <- list(matrix(0,nrow=1,ncol=1)) # Fake locations list for FEM integration, ignored in C++
       } else if(is.matrix(locations_pred)){
         ### Locations is just a list with one element, the original locations_pred
         locations_list <- list(locations_pred)
@@ -221,7 +221,7 @@
       }
       
       # Set the depth types for prediction
-      private$model_$set_pred_depth_types(depth_types)
+      private$model_$set_pred_depth_types(depth_types_num)
       
       private$model_$predict(f_pred_list, f_pred_mask_list, locations_list)
       
@@ -371,7 +371,7 @@
       low_whisker = private$model_$low_whisker()
       low_whisker_mask = private$model_$low_whisker_NA()
       
-      low_whisker[low_whisker_mask]<-rep(NA,(low_whisker_mask)) # Put to NA the missing values
+      low_whisker[low_whisker_mask]<-rep(NA,sum(low_whisker_mask)) # Put to NA the missing values
       
       return(low_whisker) 
     }, # LowerFence, available after computation
