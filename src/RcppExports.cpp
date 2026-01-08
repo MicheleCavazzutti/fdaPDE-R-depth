@@ -25,6 +25,7 @@ END_RCPP
 }
 
 RcppExport SEXP _rcpp_module_boot_cpp_2d_depth();
+RcppExport SEXP _rcpp_module_boot_cpp_surface_depth();
 RcppExport SEXP _rcpp_module_boot_cpp_3d_depth();
 RcppExport SEXP _rcpp_module_boot_cpp_fe_space_lagrange_2_2_1();
 RcppExport SEXP _rcpp_module_boot_cpp_fe_space_lagrange_2_3_1();
@@ -42,6 +43,7 @@ RcppExport SEXP _rcpp_module_boot_cpp_gsrpde_space();
 static const R_CallMethodDef CallEntries[] = {
     {"_fdaPDE2_kronecker_tensor_product", (DL_FUNC) &_fdaPDE2_kronecker_tensor_product, 2},
     {"_rcpp_module_boot_cpp_2d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_2d_depth, 0},
+    {"_rcpp_module_boot_cpp_surface_depth", (DL_FUNC) &_rcpp_module_boot_cpp_surface_depth, 0},
     {"_rcpp_module_boot_cpp_3d_depth", (DL_FUNC) &_rcpp_module_boot_cpp_3d_depth, 0},
     {"_rcpp_module_boot_cpp_fe_space_lagrange_2_2_1", (DL_FUNC) &_rcpp_module_boot_cpp_fe_space_lagrange_2_2_1, 0},
     {"_rcpp_module_boot_cpp_fe_space_lagrange_2_3_1", (DL_FUNC) &_rcpp_module_boot_cpp_fe_space_lagrange_2_3_1, 0},
