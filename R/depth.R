@@ -47,23 +47,19 @@
       }
       
       ### Transform depth_types into a numeric type
-      depth_types_num = NULL
-      for(i in 1:length(depth_types)){
-        num=0
-        if(depth_types[i]=='SD'){ ## Simplicial univariate depth, using the weight function phi 
-          depth_types_num = c(depth_types_num,1) 
-        }else{
-          if(depth_types[i]=='FMD'){ ## Simplicial univariate depth, ignoring the wirhgt function phi
-            depth_types_num = c(depth_types_num,2)
-          }else{
-            if(depth_types[i]=='MHRD'){ ## Halfspace univariate depth, computing MHRD
-              depth_types_num = c(depth_types_num,3)
-              private$MHRD_fit_computed_ = TRUE
-            }else{
-              stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD'" )
-            }
-          }
-        }
+      depth_types_num <- numeric(length(depth_types))
+      for (i in seq_along(depth_types)) {
+        depth_types_num[i] <- switch(depth_types[i],
+                                     "SD"   = 1,
+                                     "FMD"  = 2,
+                                     "MHRD" = {
+                                       private$MHRD_fit_computed_ <- TRUE
+                                       3
+                                     },
+                                     "DI-SD" = 4,
+                                     # Default case
+                                     stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD', 'DI-SD'.")
+        )
       }
       
       ### Transform int_method in numeric value (0 --> "FEM-0", 1 --> "Voronoi")
@@ -201,23 +197,23 @@
       }
       
       ### Transform depth_types into a numeric type
-      depth_types_num = NULL
-      for(i in 1:length(depth_types)){
-        num=0
-        if(depth_types[i]=='SD'){
-          depth_types_num = c(depth_types_num,1) 
-        }else{
-          if(depth_types[i]=='FMD'){
-            depth_types_num = c(depth_types_num,2)
-          }else{
-            if(depth_types[i]=='MHRD'){
-              depth_types_num = c(depth_types_num,3)
-              private$MHRD_pred_computed_ = TRUE
-            }else{
-              stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD'" )
-            }
-          }
-        }
+      depth_types_num <- numeric(length(depth_types))
+      
+      for (i in seq_along(depth_types)) {
+        depth_types_num[i] <- switch(depth_types[i],
+                                     "SD"   = 1,
+                                     "FMD"  = 2,
+                                     "MHRD" = {
+                                       # Imposta il flag specifico per la predizione
+                                       private$MHRD_pred_computed_ <- TRUE
+                                       3
+                                     },
+                                     "DI-SD" = {
+                                       stop("Double integral not implemented yet in predict")
+                                     },
+                                     # Caso di errore se la stringa non è tra quelle permesse
+                                     stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD'")
+        )
       }
       
       # Set the depth types for prediction
@@ -396,7 +392,7 @@ Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'V
   ### may be a single matrix (available only in the case of Voronoi, than all the functional data need to have the same length),
   ### may be a list of matrices (one for each functional datum, need to have the same length)
   ### - domain: mesh representing the problem
-  ### - depth_types: a vector specifying the types of depths one wants to compute on the provided data. Note that computing different depths essentially does not bring overhead.
+  ### - depth_types: a vector specifying the types of depths one wants to compute on the provided data. Computing different univariate depths does not bring any overhead.
   ### - int_method: can take value "Voronoi" or "FEM-0", indicated the type of integration one wants to perform
   ### - phi_function: type of weight function one would like to use in the depth integral weight
   ### - external_measures_vector: vector of length (number of nodes) that is reporting the Voronoi areas associated to the mesh nodes. Needed only in Voronoi integration and 2.5/3 dimensional problems.
