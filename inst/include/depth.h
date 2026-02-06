@@ -66,6 +66,7 @@ namespace fdapde {
         }
 	model_.set_locations(locations_vector_list);
       }
+      void set_roi(const DVector<int>& roi) {model_.set_roi(roi);} // NBB substitute the vector with the approriate structure in cpp part
       void set_depth_types(const DVector<int>& depth_type) {model_.set_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
       void set_pred_depth_types(const DVector<int>& depth_type) {model_.set_pred_depth_types(depth_type);} // NBB substitute the vector with the approriate structure in cpp part
       void set_functional_data(const Rcpp::List & f_data_list, const Rcpp::List & f_mask_list){ // Note: now I am importing lists of vectors from R

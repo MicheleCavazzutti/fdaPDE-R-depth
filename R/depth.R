@@ -26,7 +26,7 @@
     MHRD_pred_computed_ = FALSE # This flag is need to understand whether the MHRD for pred is computed or not. In the latter case, mepi and mhypo are not available
   ),
   public = list(
-    initialize = function(domain, f_data_list, f_data_mask_list, locations_list, depth_types, int_method, phi_function, external_measures_vector) { 
+    initialize = function(domain, f_data_list, f_data_mask_list, locations_list, depth_types, int_method, phi_function, region_of_interest, external_measures_vector) { 
       ### Define the C++ model
       ## extract local and embedding dimensions
       m <- ncol(domain$elements) - 1
@@ -57,8 +57,9 @@
                                        3
                                      },
                                      "DI-SD" = 4,
+                                     "PDI-SD" = 5,
                                      # Default case
-                                     stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD', 'DI-SD'.")
+                                     stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD', 'DI-SD', 'PDI-SD'.")
         )
       }
       
@@ -70,6 +71,7 @@
       private$model_$set_locations(locations_list) # Two cases are possible here: either a list of length 1, containing a single matrix of locations common to every functional datum, or a list of length n_train, with a locations matrix for each functional datum
       private$model_$set_depth_types(depth_types_num) # List of numbers indicating the depth types required
       private$model_$set_int_method(int_method_num) # integer indicating the type of integration required. Currently can be of value -1 (Voronoi depth) or 0 (FEM-0 depth)
+      private$model_$set_roi(region_of_interest) # Two cases are possible here: a vector of dimension 1 with value -1 or a vector of arbitrary dimension with non-negative integre values
       
       # Just for 2.5D and 3D cases
       if (((m == 2 && n == 3) || (m==3 && n == 3)) && (int_method_num == -1) ){ if(length(external_measures_vector) == 1){stop("You need to provide external measures in 2.5D and 3D cases, when Voronoi integration is required")}}
@@ -210,6 +212,9 @@
                                      },
                                      "DI-SD" = {
                                        stop("Double integral not implemented yet in predict")
+                                     },
+                                     "PDI-SD" = {
+                                       stop("Partial Double integral not implemented yet in predict")
                                      },
                                      # Caso di errore se la stringa non è tra quelle permesse
                                      stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD'")
@@ -383,7 +388,7 @@
  
 # Public interface
 #' @export
-Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'Voronoi', phi_function = NULL, external_measures_vector = NULL){
+Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'Voronoi', phi_function = NULL, region_of_interest = NULL, external_measures_vector = NULL){
   ### Description of the inputs:
   ### - f_data: evaluations of the functional data in the locations. Can be two things: a matrix (in case only one set of locations is available
   ### or locations is NULL, that is FEM case) or a list() of vectors (in the case one wants to specify different locations for each functional datum
@@ -395,6 +400,8 @@ Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'V
   ### - depth_types: a vector specifying the types of depths one wants to compute on the provided data. Computing different univariate depths does not bring any overhead.
   ### - int_method: can take value "Voronoi" or "FEM-0", indicated the type of integration one wants to perform
   ### - phi_function: type of weight function one would like to use in the depth integral weight
+  ### - region_of_interest: set of elements that compose the area of interest w.r.t. which the Partial Double Integral (PDI-) depths are computed.
+  ### If left to NULL, a surrounding area for each node is selected.
   ### - external_measures_vector: vector of length (number of nodes) that is reporting the Voronoi areas associated to the mesh nodes. Needed only in Voronoi integration and 2.5/3 dimensional problems.
   
   ### Check that functional data are either matrix or list of vectors
@@ -499,12 +506,44 @@ Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'V
     warning("The phi function should be a positive function \n")
   }
   
+  ### Check well posedness of the ROI, if any
+  if (is.null(region_of_interest)) { # Set default value, that implies the contruction of a surrounding patch for each node
+    region_of_interest <- 0
+  } else {
+    if (!is.numeric(region_of_interest) || any(region_of_interest %% 1 != 0)) {
+      stop("region_of_interest must be a vector of positive integers if not left to NULL")
+    }
+    if (any(region_of_interest < 1)) {
+      stop("region_of_interest must be a vector of positive integers if not left to NULL")
+    }
+    if (int_method == "FEM-0") {
+      max_val <- nrow(domain$elements()) # In region of interest should be specified the values of the possible elements in the ROI
+      if (any(region_of_interest > max_val)) {
+        stop(
+          "region_of_interest values should range from 1 to nrow(domain$elements()) if FEM-0 integration is required"
+        ))
+      }
+    } else if (int_method == "Voronoi") {
+      max_val <- nrow(domain$nodes()) # In region of interest should be specified the values of the nodes elements in the ROI
+      if (any(region_of_interest > max_val)) {
+        stop(
+          "region_of_interest values should range from 1 to nrow(domain$nodes()) if Voronoi integration is required"
+        ))
+      }
+    } else {
+      stop("int_method non riconosciuto.")
+    }
+  }
+  
+  ### Cpp index alignment
+  region_of_interest <- as.integer(region_of_interest) -1 # Shift the indexes to match C++ notation
+  
   # Just for 2.5D objects and 3D objects
   if(is.null(external_measures_vector)){
     external_measures_vector <- as.numeric(rep(0,1)) # Default useless external measure vector
   }
   
   # Build the R class, return it
-  model = .DepthModel$new(domain, f_data_list, f_data_mask_list, locations_list, depth_types, int_method, phi_function, external_measures_vector)
+  model = .DepthModel$new(domain, f_data_list, f_data_mask_list, locations_list, depth_types, int_method, phi_function, region_of_interest, external_measures_vector)
   return(model)
 }
