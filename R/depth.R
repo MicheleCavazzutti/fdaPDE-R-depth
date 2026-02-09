@@ -210,14 +210,10 @@
                                        private$MHRD_pred_computed_ <- TRUE
                                        3
                                      },
-                                     "DI-SD" = {
-                                       stop("Double integral not implemented yet in predict")
-                                     },
-                                     "PDI-SD" = {
-                                       stop("Partial Double integral not implemented yet in predict")
-                                     },
+                                     "DI-SD" = 4,
+                                     "PDI-SD" = 5,
                                      # Caso di errore se la stringa non è tra quelle permesse
-                                     stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD'")
+                                     stop("Depth type should be a vector containing strings among 'SD', 'FMD', 'MHRD', 'DI-SD', 'PDI-SD'")
         )
       }
       
@@ -521,14 +517,14 @@ Depth <- function(f_data, locations = NULL, domain, depth_types, int_method = 'V
       if (any(region_of_interest > max_val)) {
         stop(
           "region_of_interest values should range from 1 to nrow(domain$elements()) if FEM-0 integration is required"
-        ))
+        )
       }
     } else if (int_method == "Voronoi") {
       max_val <- nrow(domain$nodes()) # In region of interest should be specified the values of the nodes elements in the ROI
       if (any(region_of_interest > max_val)) {
         stop(
           "region_of_interest values should range from 1 to nrow(domain$nodes()) if Voronoi integration is required"
-        ))
+        )
       }
     } else {
       stop("int_method non riconosciuto.")
